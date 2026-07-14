@@ -90,7 +90,6 @@ export function MarketTicker() {
       <div className="market-status">
         <span className={data?.allLive ? "live-dot" : "live-dot soft"} />
         <b>Market feed</b>
-        <small>{data ? "diberi data via API" : "menghubungkan API"}</small>
       </div>
       <div className="market-cells">
         {cells.map((cell) => (

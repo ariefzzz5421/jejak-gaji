@@ -5,6 +5,15 @@ import { ProfessionMark } from "./ProfessionMark";
 import { SiteHeader } from "./SiteHeader";
 
 export function ProfessionPage({ profession }: { profession: Profession }) {
+  const startAges = profession.salaryOptions?.map((item) => item.startAge ?? profession.startAge) ?? [profession.startAge];
+  const retirementAges = profession.salaryOptions?.map((item) => item.retirementAge ?? profession.retirementAge) ?? [profession.retirementAge];
+  const startAgeLabel = Math.min(...startAges) === Math.max(...startAges)
+    ? `${startAges[0]}`
+    : `${Math.min(...startAges)}–${Math.max(...startAges)}`;
+  const retirementAgeLabel = Math.min(...retirementAges) === Math.max(...retirementAges)
+    ? `${retirementAges[0]}`
+    : `${Math.min(...retirementAges)}–${Math.max(...retirementAges)}`;
+
   return (
     <main style={{ "--accent": profession.accent, "--accent-soft": profession.softAccent } as React.CSSProperties}>
       <div className="page-wrap">
@@ -17,8 +26,8 @@ export function ProfessionPage({ profession }: { profession: Profession }) {
             <h1>{profession.tagline}</h1>
             <p>{profession.description}</p>
             <div className="hero-facts">
-              <span><b>{profession.startAge}</b> usia mulai</span>
-              <span><b>{profession.retirementAge}</b> {profession.retirementIsTarget ? "target pensiun" : "usia pensiun"}</span>
+              <span><b>{startAgeLabel}</b> usia mulai</span>
+              <span><b>{retirementAgeLabel}</b> {profession.retirementIsTarget ? "target pensiun" : "usia pensiun"}</span>
               <span><b>{profession.annualPayments}×</b> gaji / tahun</span>
             </div>
           </div>

@@ -1,5 +1,15 @@
 export type ProfessionSlug = "guru" | "polisi" | "tni" | "upah-minimum" | "freelance";
 
+export type SalaryOption = {
+  id: string;
+  label: string;
+  group: string;
+  salary: number;
+  startAge?: number;
+  retirementAge?: number;
+  retirementRule?: string;
+};
+
 export type Profession = {
   slug: ProfessionSlug;
   name: string;
@@ -21,7 +31,63 @@ export type Profession = {
   salaryBasis: string;
   salaryNote: string;
   salarySource: string;
+  salaryOptions?: SalaryOption[];
+  defaultSalaryOptionId?: string;
 };
+
+const pnsTeacherGrades: SalaryOption[] = [
+  { id: "iii-a", label: "Golongan III/a", group: "PNS Golongan III", salary: 2_785_700 },
+  { id: "iii-b", label: "Golongan III/b", group: "PNS Golongan III", salary: 2_903_600 },
+  { id: "iii-c", label: "Golongan III/c", group: "PNS Golongan III", salary: 3_026_400 },
+  { id: "iii-d", label: "Golongan III/d", group: "PNS Golongan III", salary: 3_154_400 },
+  { id: "iv-a", label: "Golongan IV/a", group: "PNS Golongan IV", salary: 3_287_800 },
+  { id: "iv-b", label: "Golongan IV/b", group: "PNS Golongan IV", salary: 3_426_900 },
+  { id: "iv-c", label: "Golongan IV/c", group: "PNS Golongan IV", salary: 3_571_900 },
+  { id: "iv-d", label: "Golongan IV/d", group: "PNS Golongan IV", salary: 3_723_000 },
+  { id: "iv-e", label: "Golongan IV/e", group: "PNS Golongan IV", salary: 3_880_400 },
+];
+
+const polriRanks: SalaryOption[] = [
+  { id: "bharada", label: "Bharada", group: "Tamtama", salary: 2_272_100, retirementAge: 59, retirementRule: "BUP Tamtama Polri 59 tahun" },
+  { id: "bharatu", label: "Bharatu", group: "Tamtama", salary: 2_343_100, retirementAge: 59, retirementRule: "BUP Tamtama Polri 59 tahun" },
+  { id: "bharaka", label: "Bharaka", group: "Tamtama", salary: 2_416_400, retirementAge: 59, retirementRule: "BUP Tamtama Polri 59 tahun" },
+  { id: "abripda", label: "Abripda", group: "Tamtama", salary: 2_492_000, retirementAge: 59, retirementRule: "BUP Tamtama Polri 59 tahun" },
+  { id: "abriptu", label: "Abriptu", group: "Tamtama", salary: 2_570_000, retirementAge: 59, retirementRule: "BUP Tamtama Polri 59 tahun" },
+  { id: "abrip", label: "Abrip", group: "Tamtama", salary: 2_650_300, retirementAge: 59, retirementRule: "BUP Tamtama Polri 59 tahun" },
+  { id: "bripda", label: "Bripda", group: "Bintara", salary: 2_272_100, retirementAge: 59, retirementRule: "BUP Bintara Polri 59 tahun" },
+  { id: "briptu", label: "Briptu", group: "Bintara", salary: 2_343_100, retirementAge: 59, retirementRule: "BUP Bintara Polri 59 tahun" },
+  { id: "brigpol", label: "Brigpol", group: "Bintara", salary: 2_416_400, retirementAge: 59, retirementRule: "BUP Bintara Polri 59 tahun" },
+  { id: "bripka", label: "Bripka", group: "Bintara", salary: 2_492_000, retirementAge: 59, retirementRule: "BUP Bintara Polri 59 tahun" },
+  { id: "aipda", label: "Aipda", group: "Bintara", salary: 2_570_000, retirementAge: 59, retirementRule: "BUP Bintara Polri 59 tahun" },
+  { id: "aiptu", label: "Aiptu", group: "Bintara", salary: 2_650_300, retirementAge: 59, retirementRule: "BUP Bintara Polri 59 tahun" },
+  { id: "ipda", label: "Ipda", group: "Perwira", salary: 2_954_200, startAge: 22, retirementAge: 60, retirementRule: "BUP Perwira Polri 60 tahun" },
+  { id: "iptu", label: "Iptu", group: "Perwira", salary: 3_046_600, startAge: 22, retirementAge: 60, retirementRule: "BUP Perwira Polri 60 tahun" },
+  { id: "akp", label: "AKP", group: "Perwira", salary: 3_141_900, startAge: 22, retirementAge: 60, retirementRule: "BUP Perwira Polri 60 tahun" },
+  { id: "kompol", label: "Kompol", group: "Perwira", salary: 3_240_200, startAge: 22, retirementAge: 60, retirementRule: "BUP Perwira Polri 60 tahun" },
+  { id: "akbp", label: "AKBP", group: "Perwira", salary: 3_341_500, startAge: 22, retirementAge: 60, retirementRule: "BUP Perwira Polri 60 tahun" },
+  { id: "kombes", label: "Kombes", group: "Perwira", salary: 3_446_000, startAge: 22, retirementAge: 60, retirementRule: "BUP Perwira Polri 60 tahun" },
+];
+
+const tniRanks: SalaryOption[] = [
+  { id: "prada", label: "Prada", group: "Tamtama", salary: 2_272_100, retirementAge: 55, retirementRule: "BUP Tamtama TNI 55 tahun" },
+  { id: "pratu", label: "Pratu", group: "Tamtama", salary: 2_343_100, retirementAge: 55, retirementRule: "BUP Tamtama TNI 55 tahun" },
+  { id: "praka", label: "Praka", group: "Tamtama", salary: 2_416_400, retirementAge: 55, retirementRule: "BUP Tamtama TNI 55 tahun" },
+  { id: "kopda", label: "Kopda", group: "Tamtama", salary: 2_492_000, retirementAge: 55, retirementRule: "BUP Tamtama TNI 55 tahun" },
+  { id: "koptu", label: "Koptu", group: "Tamtama", salary: 2_570_000, retirementAge: 55, retirementRule: "BUP Tamtama TNI 55 tahun" },
+  { id: "kopka", label: "Kopka", group: "Tamtama", salary: 2_650_300, retirementAge: 55, retirementRule: "BUP Tamtama TNI 55 tahun" },
+  { id: "serda", label: "Serda", group: "Bintara", salary: 2_272_100, retirementAge: 55, retirementRule: "BUP Bintara TNI 55 tahun" },
+  { id: "sertu", label: "Sertu", group: "Bintara", salary: 2_343_100, retirementAge: 55, retirementRule: "BUP Bintara TNI 55 tahun" },
+  { id: "serka", label: "Serka", group: "Bintara", salary: 2_416_400, retirementAge: 55, retirementRule: "BUP Bintara TNI 55 tahun" },
+  { id: "serma", label: "Serma", group: "Bintara", salary: 2_492_000, retirementAge: 55, retirementRule: "BUP Bintara TNI 55 tahun" },
+  { id: "pelda", label: "Pelda", group: "Bintara", salary: 2_570_000, retirementAge: 55, retirementRule: "BUP Bintara TNI 55 tahun" },
+  { id: "peltu", label: "Peltu", group: "Bintara", salary: 2_650_300, retirementAge: 55, retirementRule: "BUP Bintara TNI 55 tahun" },
+  { id: "letda", label: "Letda", group: "Perwira", salary: 2_954_200, startAge: 22, retirementAge: 58, retirementRule: "BUP Perwira TNI sampai Kolonel 58 tahun" },
+  { id: "lettu", label: "Lettu", group: "Perwira", salary: 3_046_600, startAge: 22, retirementAge: 58, retirementRule: "BUP Perwira TNI sampai Kolonel 58 tahun" },
+  { id: "kapten", label: "Kapten", group: "Perwira", salary: 3_141_900, startAge: 22, retirementAge: 58, retirementRule: "BUP Perwira TNI sampai Kolonel 58 tahun" },
+  { id: "mayor", label: "Mayor", group: "Perwira", salary: 3_240_200, startAge: 22, retirementAge: 58, retirementRule: "BUP Perwira TNI sampai Kolonel 58 tahun" },
+  { id: "letkol", label: "Letkol", group: "Perwira", salary: 3_341_500, startAge: 22, retirementAge: 58, retirementRule: "BUP Perwira TNI sampai Kolonel 58 tahun" },
+  { id: "kolonel", label: "Kolonel", group: "Perwira", salary: 3_446_000, startAge: 22, retirementAge: 58, retirementRule: "BUP Perwira TNI sampai Kolonel 58 tahun" },
+];
 
 export const professions: Record<ProfessionSlug, Profession> = {
   guru: {
@@ -46,6 +112,8 @@ export const professions: Record<ProfessionSlug, Profession> = {
     salaryNote:
       "PP 5/2024 menetapkan gaji pokok awal PNS Golongan III/a Rp2.785.700. Nilai riil dapat lebih tinggi karena masa kerja, sertifikasi, dan tunjangan daerah.",
     salarySource: "https://peraturan.bpk.go.id/Details/276755/pp-no-5-tahun-2024",
+    salaryOptions: pnsTeacherGrades,
+    defaultSalaryOptionId: "iii-a",
   },
   polisi: {
     slug: "polisi",
@@ -69,6 +137,8 @@ export const professions: Record<ProfessionSlug, Profession> = {
     salaryNote:
       "PP 7/2024 menetapkan gaji pokok awal Bripda Rp2.272.100. UU 5/2026 menetapkan BUP Bintara/Tamtama 59 tahun; Perwira umumnya 60 tahun.",
     salarySource: "https://peraturan.bpk.go.id/Details/276772/pp-no-7-tahun-2024",
+    salaryOptions: polriRanks,
+    defaultSalaryOptionId: "bripda",
   },
   tni: {
     slug: "tni",
@@ -92,6 +162,8 @@ export const professions: Record<ProfessionSlug, Profession> = {
     salaryNote:
       "PP 6/2024 menetapkan gaji pokok awal Serda Rp2.272.100. UU 3/2025 menetapkan BUP Bintara/Tamtama 55 tahun dan Perwira sampai Kolonel 58 tahun.",
     salarySource: "https://peraturan.bpk.go.id/Details/276758/pp-no-6-tahun-2024",
+    salaryOptions: tniRanks,
+    defaultSalaryOptionId: "serda",
   },
   "upah-minimum": {
     slug: "upah-minimum",

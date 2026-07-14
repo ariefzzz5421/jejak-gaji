@@ -34,6 +34,9 @@ const loadCanvasImage = (src: string) =>
 export function LifetimeCalculator({ profession }: { profession: Profession }) {
   const isMinimumWage = profession.slug === "upah-minimum";
   const [cityId, setCityId] = useState("kediri");
+  const [salaryOptionId, setSalaryOptionId] = useState(
+    profession.defaultSalaryOptionId ?? profession.salaryOptions?.[0]?.id ?? "",
+  );
   const [salary, setSalary] = useState(profession.defaultSalary);
   const [salaryGrowth, setSalaryGrowth] = useState(3);
   const [savingRate, setSavingRate] = useState(15);
@@ -68,15 +71,19 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
 
   const city = cityWages.find((item) => item.id === cityId) ?? cityWages[0];
   const instrument = investments[instrumentId];
-  const startAge = profession.startAge;
-  const retirementAge = profession.retirementAge;
+  const salaryOption = profession.salaryOptions?.find((item) => item.id === salaryOptionId);
+  const startAge = salaryOption?.startAge ?? profession.startAge;
+  const retirementAge = salaryOption?.retirementAge ?? profession.retirementAge;
+  const retirementRule = salaryOption?.retirementRule ?? profession.retirementRule;
   const workYears = Math.max(retirementAge - startAge, 1);
   const retirementYear = referenceData.currentYear + workYears;
   const postRetirementYears = Math.max(referenceData.lifeExpectancy - retirementAge, 0);
   const realYield = instrument.netYield - referenceData.inflation;
   const benchmarkLabel = isMinimumWage
     ? `${city.type} ${city.city} · pekerja <1 tahun`
-    : profession.benchmarkLabel;
+    : salaryOption
+      ? `${salaryOption.label} · gaji pokok minimum`
+      : profession.benchmarkLabel;
 
   const calculation = useMemo(() => {
     const months = workYears * 12;
@@ -110,13 +117,19 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
     if (nextCity) setSalary(nextCity.amount);
   };
 
+  const handleSalaryOption = (nextId: string) => {
+    const nextOption = profession.salaryOptions?.find((item) => item.id === nextId);
+    setSalaryOptionId(nextId);
+    if (nextOption) setSalary(nextOption.salary);
+  };
+
   const assets = [
     {
       id: "gold" as const,
       name: "Emas Antam 10g",
       price: assetPrices.gold,
       helper: `${goldPriceLive ? "Logam Mulia API" : "harga acuan"} · 10 gram`,
-      image: "/antam-10g.jpg",
+      image: "/antam-10g.png",
       alt: "Emas batangan Antam 10 gram dalam kemasan",
       fit: "contain",
       width: 250,
@@ -224,8 +237,8 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
       context.fillText(`${savingRate}% PENGHASILAN DISISIHKAN`, 90, 815);
       context.fillStyle = "#fffdf8";
       context.font = "400 42px Georgia, serif";
-      context.fillText(`Tunai  ${compactRupiah(calculation.cashSaved)}`, 90, 885);
-      context.fillText(`${instrument.name}  ${compactRupiah(calculation.invested)}`, 90, 955);
+      context.fillText(`Tanpa investasi  ${compactRupiah(calculation.cashSaved)}`, 90, 885);
+      context.fillText(`Dengan ${instrument.name}  ${compactRupiah(calculation.invested)}`, 90, 955);
       context.fillStyle = "rgba(255,255,255,.7)";
       context.font = "400 23px Segoe UI, Arial";
       context.fillText(`Yield neto ${instrument.netYield.toFixed(2)}% · potensi tambahan ${compactRupiah(calculation.growth)}`, 90, 1015);
@@ -294,6 +307,30 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
             </label>
           ) : null}
 
+          {profession.salaryOptions ? (
+            <label className="field-label" htmlFor="salary-option">
+              <span>{profession.slug === "guru" ? "Golongan PNS" : "Golongan / pangkat"}</span>
+              <select
+                id="salary-option"
+                value={salaryOptionId}
+                onChange={(event) => handleSalaryOption(event.target.value)}
+              >
+                {Array.from(new Set(profession.salaryOptions.map((item) => item.group))).map((group) => (
+                  <optgroup label={group} key={group}>
+                    {profession.salaryOptions!
+                      .filter((item) => item.group === group)
+                      .map((item) => (
+                        <option value={item.id} key={item.id}>
+                          {item.label} · {rupiah.format(item.salary)}
+                        </option>
+                      ))}
+                  </optgroup>
+                ))}
+              </select>
+              <small>Gaji pokok minimum 2024 · belum termasuk masa kerja dan tunjangan</small>
+            </label>
+          ) : null}
+
           <div className="benchmark-card">
             <div className="benchmark-card-head">
               <Image src={profession.image} alt="" width={1024} height={1024} sizes="64px" unoptimized />
@@ -311,7 +348,7 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
               <div><span>{profession.retirementIsTarget ? "Target pensiun" : "Usia pensiun"}</span><strong>{retirementAge} tahun</strong></div>
               <div><span>Jika mulai 2026</span><strong>{retirementYear}</strong></div>
             </div>
-            <p>{profession.retirementRule}</p>
+            <p>{retirementRule}</p>
           </div>
 
           <div className="split-fields assumption-sliders">
@@ -389,16 +426,20 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
         <div className="scenario-grid">
           <article className="scenario-card cash-card">
             <div className="scenario-icon">0%</div>
-            <p>Disimpan tunai</p>
+            <p>Tanpa investasi</p>
             <strong>{compactRupiah(calculation.cashSaved)}</strong>
-            <small>Pokok dari {savingRate}% penghasilan · tanpa imbal hasil</small>
+            <div className="scenario-result-bar" aria-hidden="true">
+              <span style={{ width: `${calculation.invested > 0 ? (calculation.cashSaved / calculation.invested) * 100 : 0}%` }} />
+            </div>
+            <small>Total dari {savingRate}% penghasilan · tidak mendapat imbal hasil</small>
           </article>
           <div className="versus-badge">VS</div>
           <article className="scenario-card invest-card">
             <div className="scenario-icon">+{instrument.netYield.toFixed(2)}%</div>
-            <p>Diinvestasikan di {instrument.name}</p>
+            <p>Dengan investasi {instrument.name}</p>
             <strong>{compactRupiah(calculation.invested)}</strong>
-            <small>Estimasi akhir · reinvestasi bulanan</small>
+            <div className="scenario-result-bar" aria-hidden="true"><span style={{ width: calculation.invested > 0 ? "100%" : "0%" }} /></div>
+            <small>Total setoran + estimasi imbal hasil yang diinvestasikan kembali</small>
           </article>
           <article className="growth-card">
             <p>Potensi tambahan dari compounding</p>
@@ -425,6 +466,9 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
         <div className="purchase-grid">
           {assets.map((asset) => {
             const months = asset.price / salary;
+            const years = months / 12;
+            const progress = Math.min((years / workYears) * 100, 100);
+            const exceedsCareer = years > workYears;
             return (
               <article className="purchase-card" key={asset.id}>
                 <div className="purchase-art">
@@ -451,7 +495,17 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
                   />
                 </div>
                 <strong>{months.toFixed(1)}× gaji bulanan</strong>
-                <small>≈ {(months / 12).toFixed(1)} tahun gaji kotor · {asset.helper}</small>
+                <div className={`purchase-progress ${exceedsCareer ? "over-career" : ""}`}>
+                  <div className="purchase-progress-track" aria-label={`${years.toFixed(1)} tahun gaji kotor`}>
+                    <span style={{ width: `${progress}%` }} />
+                  </div>
+                  <div className="purchase-progress-years">
+                    <span>0 th</span>
+                    <strong>{years.toFixed(1)} tahun gaji</strong>
+                    <span>{workYears} th karier</span>
+                  </div>
+                </div>
+                <small>{exceedsCareer ? "Melewati estimasi masa kerja · " : "100% gaji kotor · "}{asset.helper}</small>
               </article>
             );
           })}
