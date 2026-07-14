@@ -371,12 +371,36 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
 
       <section className="calculator-results" aria-live="polite">
         <div className="result-topline">
-          <p>Estimasi penghasilan seumur kerja</p>
+          <p>Preview skenario akhir masa kerja</p>
           <span>{workYears} tahun bekerja</span>
         </div>
-        <p className="hero-number">{compactRupiah(calculation.totalIncome)}</p>
+
+        <div
+          className="result-scenario-preview"
+          key={`${instrumentId}-${salary}-${salaryGrowth}-${savingRate}-${workYears}`}
+        >
+          <article className="result-scenario-card">
+            <span>Tanpa investasi</span>
+            <strong>{compactRupiah(calculation.cashSaved)}</strong>
+            <small>{savingRate}% penghasilan hanya disimpan</small>
+            <i aria-hidden="true"><b style={{ width: `${calculation.invested > 0 ? (calculation.cashSaved / calculation.invested) * 100 : 0}%` }} /></i>
+          </article>
+          <div className="result-scenario-vs">VS</div>
+          <article className="result-scenario-card invested">
+            <span>Dengan {instrument.name}</span>
+            <strong>{compactRupiah(calculation.invested)}</strong>
+            <small>Yield neto {instrument.netYield.toFixed(2)}% per tahun</small>
+            <i aria-hidden="true"><b style={{ width: calculation.invested > 0 ? "100%" : "0%" }} /></i>
+          </article>
+        </div>
+
+        <div className="result-growth-highlight">
+          <span>Potensi tambahan dari investasi</span>
+          <strong>+{compactRupiah(calculation.growth)}</strong>
+        </div>
+
         <p className="result-caption">
-          Nominal sebelum biaya hidup, dengan kenaikan gaji {salaryGrowth}% per tahun dan {profession.annualPayments} kali pembayaran per tahun.
+          Skenario memakai kenaikan gaji {salaryGrowth}% per tahun, {profession.annualPayments} kali pembayaran, dan setoran rutin selama masa kerja.
         </p>
 
         <div className="life-timeline" aria-label="Garis waktu hidup dan kerja">
@@ -395,14 +419,20 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
         </div>
 
         <div className="mini-metrics">
-          <div><span>Setara bulanan + bonus</span><strong>{compactRupiah(calculation.monthlyEquivalent)}</strong></div>
+          <div><span>Total penghasilan kotor</span><strong>{compactRupiah(calculation.totalIncome)}</strong></div>
           <div><span>Tahun pensiun</span><strong>{retirementYear}</strong></div>
           <div><span>Masa setelah pensiun</span><strong>{postRetirementYears.toFixed(1)} tahun</strong></div>
         </div>
 
-        <button className="download-summary" type="button" onClick={downloadSummary} disabled={isDownloading}>
-          <span aria-hidden="true">↓</span>
-          {isDownloading ? "Menyiapkan gambar..." : "Unduh ringkasan PNG"}
+        <button
+          className="download-summary"
+          type="button"
+          onClick={downloadSummary}
+          disabled={isDownloading}
+          aria-label="Download ringkasan PNG"
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 20h14" /></svg>
+          {isDownloading ? "Menyiapkan..." : "Download"}
         </button>
       </section>
 

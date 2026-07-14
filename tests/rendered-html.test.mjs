@@ -50,7 +50,9 @@ test("renders automatic freelance benchmark, PNG download, and real asset images
   assert.match(html, /Pendapatan tidak tetap tetap bisa punya arah/);
   assert.match(html, /Benchmark otomatis/);
   assert.match(html, /Rp\s*1\.920\.000/);
-  assert.match(html, /Unduh ringkasan PNG/);
+  assert.match(html, /Download/);
+  assert.match(html, /Preview skenario akhir masa kerja/);
+  assert.match(html, /Potensi tambahan dari investasi/);
   assert.doesNotMatch(html, /Daerah tempat tinggal dan bekerja/);
   assert.match(html, /antam-10g\.png/);
   assert.match(html, /avanza\.png/);
