@@ -2,8 +2,16 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { professionList, type ProfessionSlug } from "../data";
+import { professionList, type Profession, type ProfessionSlug } from "../data";
 import { ProfessionMark } from "./ProfessionMark";
+
+function retirementLabel(profession: Profession) {
+  const ages = profession.salaryOptions?.map((option) => option.retirementAge ?? profession.retirementAge)
+    ?? [profession.retirementAge];
+  const minimum = Math.min(...ages);
+  const maximum = Math.max(...ages);
+  return minimum === maximum ? `${minimum}` : `${minimum}–${maximum}`;
+}
 
 export function JobSelector() {
   const [selected, setSelected] = useState<ProfessionSlug | null>(null);
@@ -29,7 +37,11 @@ export function JobSelector() {
               <span>{item.salaryBasis}</span>
             </div>
             <div className="card-footer">
-              <span>{item.retirementIsTarget ? "Target" : "Pensiun"} {item.retirementAge} tahun</span>
+              <span>
+                {item.retirementIsTarget ? "Target" : "Pensiun"}{" "}
+                {retirementLabel(item)}{" "}
+                tahun
+              </span>
               <b>{selected === item.slug ? "✓" : "+"}</b>
             </div>
           </button>
