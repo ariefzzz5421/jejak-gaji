@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AgeJourney } from "./components/AgeJourney";
 import { JobSelector } from "./components/JobSelector";
 import { SiteHeader } from "./components/SiteHeader";
 import { methodologySources, referenceData } from "./data";
@@ -22,14 +23,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="hero-visual" aria-label="Ilustrasi perjalanan gaji sepanjang hidup">
-            <div className="hero-sun"><span>37</span><small>tahun<br />bekerja</small></div>
-            <div className="salary-ribbon ribbon-one"><span>Mulai kerja</span><strong>23</strong></div>
-            <div className="salary-ribbon ribbon-two"><span>Estimasi pensiun</span><strong>60</strong></div>
-            <div className="salary-ribbon ribbon-three"><span>Harapan hidup</span><strong>73,93</strong></div>
-            <div className="hero-curve"><i /><i /><i /><i /></div>
-            <p>Waktu mengubah gaji kecil menjadi angka yang sangat besar.</p>
-          </div>
+          <AgeJourney />
         </section>
 
         <section className="profession-section" id="profesi">

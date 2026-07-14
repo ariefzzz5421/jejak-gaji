@@ -29,6 +29,11 @@ test("server-renders the selection-first home page", async () => {
   assert.match(html, /<title>Jejak Gaji/);
   assert.match(html, /Apa pekerjaanmu saat ini\?/);
   assert.match(html, /Langkah 1 dari 2/);
+  assert.match(html, /Simulasi perubahan usia dari 20 hingga 74 tahun/);
+  assert.match(html, /Geser untuk melihat perubahan usia/);
+  assert.match(html, /Pilih usia manusia/);
+  assert.match(html, /age-journey\/age-20\.png/);
+  assert.match(html, /age-journey\/age-74\.png/);
   assert.match(html, /Freelancer/);
   assert.match(html, /Custom/);
   assert.match(html, /SBN \/ BI Bonds Yield/);
