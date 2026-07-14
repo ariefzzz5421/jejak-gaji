@@ -5,18 +5,17 @@ const FALLBACK = {
   ihsg: 7_500,
 };
 
-const SOURCES = {
+const ENDPOINTS = {
   biRate: "https://www.bi.go.id/id/statistik/indikator/bi-rate.aspx",
-  usdIdr: "https://frankfurter.dev/",
   antam1g: "https://www.logammulia.com/id/harga-emas-hari-ini",
-  ihsg: "https://finance.yahoo.com/quote/%5EJKSE/",
+  yahooChart: "https://query1.finance.yahoo.com/v8/finance/chart",
 };
 
 type MarketMetric = {
   value: number;
   date?: string;
   changePercent?: number;
-  source: string;
+  provider: "Yahoo API" | "BI feed" | "Logam Mulia feed";
   isFallback: boolean;
 };
 
@@ -43,61 +42,69 @@ const cleanText = (html: string) =>
 const toPrice = (value: string) => Number(value.replace(/[^\d]/g, ""));
 
 async function getBiRate(): Promise<MarketMetric> {
-  const response = await fetchWithTimeout(SOURCES.biRate);
-  if (!response.ok) throw new Error("BI source unavailable");
+  const response = await fetchWithTimeout(ENDPOINTS.biRate);
+  if (!response.ok) throw new Error("BI feed unavailable");
   const text = cleanText(await response.text());
   const match = text.match(/(\d{1,2}\s+[A-Za-z]+\s+\d{4})\s+(\d+[.,]\d+)\s*%/i);
   if (!match) throw new Error("BI rate not found");
   const value = Number(match[2].replace(",", "."));
   if (!Number.isFinite(value) || value <= 0) throw new Error("BI rate is invalid");
-  return { value, date: match[1], source: SOURCES.biRate, isFallback: false };
+  return { value, date: match[1], provider: "BI feed", isFallback: false };
+}
+
+async function getYahooMetric(symbol: string): Promise<Omit<MarketMetric, "provider">> {
+  const response = await fetchWithTimeout(
+    `${ENDPOINTS.yahooChart}/${encodeURIComponent(symbol)}?interval=1d&range=5d`,
+  );
+  if (!response.ok) throw new Error(`Yahoo API unavailable for ${symbol}`);
+  const data = (await response.json()) as {
+    chart?: {
+      result?: Array<{
+        meta?: {
+          regularMarketPrice?: number;
+          chartPreviousClose?: number;
+          regularMarketTime?: number;
+        };
+      }>;
+    };
+  };
+  const meta = data.chart?.result?.[0]?.meta;
+  if (!meta?.regularMarketPrice) throw new Error(`Yahoo value not found for ${symbol}`);
+  const previous = meta.chartPreviousClose;
+  return {
+    value: meta.regularMarketPrice,
+    changePercent: previous ? ((meta.regularMarketPrice - previous) / previous) * 100 : undefined,
+    date: meta.regularMarketTime
+      ? new Date(meta.regularMarketTime * 1000).toISOString()
+      : undefined,
+    isFallback: false,
+  };
 }
 
 async function getUsdIdr(): Promise<MarketMetric> {
-  const response = await fetchWithTimeout("https://api.frankfurter.dev/v2/rate/USD/IDR");
-  if (!response.ok) throw new Error("FX source unavailable");
-  const data = (await response.json()) as { rate?: number; date?: string };
-  if (!data.rate) throw new Error("FX rate not found");
-  return { value: data.rate, date: data.date, source: SOURCES.usdIdr, isFallback: false };
+  return { ...(await getYahooMetric("IDR=X")), provider: "Yahoo API" };
 }
 
 async function getAntam1g(): Promise<MarketMetric> {
-  const response = await fetchWithTimeout(SOURCES.antam1g);
-  if (!response.ok) throw new Error("Antam source unavailable");
+  const response = await fetchWithTimeout(ENDPOINTS.antam1g);
+  if (!response.ok) throw new Error("Antam feed unavailable");
   const text = cleanText(await response.text());
   const date = text.match(/Harga Emas Hari Ini,?\s+([^H]+?)\s+Harga di-update/i)?.[1]?.trim();
   const price = text.match(/(?:^|\s)1\s*gr\s+([\d.,]+)/i)?.[1];
   if (!price) throw new Error("Antam price not found");
   const value = toPrice(price);
   if (!Number.isFinite(value) || value <= 0) throw new Error("Antam price is invalid");
-  return { value, date, source: SOURCES.antam1g, isFallback: false };
+  return { value, date, provider: "Logam Mulia feed", isFallback: false };
 }
 
 async function getIhsg(): Promise<MarketMetric> {
-  const response = await fetchWithTimeout(
-    "https://query1.finance.yahoo.com/v8/finance/chart/%5EJKSE?interval=1d&range=5d",
-  );
-  if (!response.ok) throw new Error("IHSG source unavailable");
-  const data = (await response.json()) as {
-    chart?: { result?: Array<{ meta?: { regularMarketPrice?: number; chartPreviousClose?: number } }> };
-  };
-  const meta = data.chart?.result?.[0]?.meta;
-  if (!meta?.regularMarketPrice) throw new Error("IHSG value not found");
-  const previous = meta.chartPreviousClose;
-  const changePercent = previous ? ((meta.regularMarketPrice - previous) / previous) * 100 : undefined;
-  return {
-    value: meta.regularMarketPrice,
-    changePercent,
-    source: SOURCES.ihsg,
-    isFallback: false,
-  };
+  return { ...(await getYahooMetric("^JKSE")), provider: "Yahoo API" };
 }
 
-const fallbackMetric = (value: number, source: string): MarketMetric => ({
-  value,
-  source,
-  isFallback: true,
-});
+const fallbackMetric = (
+  value: number,
+  provider: MarketMetric["provider"],
+): MarketMetric => ({ value, provider, isFallback: true });
 
 export async function GET() {
   const [biRate, usdIdr, antam1g, ihsg] = await Promise.allSettled([
@@ -108,10 +115,10 @@ export async function GET() {
   ]);
 
   const metrics = {
-    biRate: biRate.status === "fulfilled" ? biRate.value : fallbackMetric(FALLBACK.biRate, SOURCES.biRate),
-    usdIdr: usdIdr.status === "fulfilled" ? usdIdr.value : fallbackMetric(FALLBACK.usdIdr, SOURCES.usdIdr),
-    antam1g: antam1g.status === "fulfilled" ? antam1g.value : fallbackMetric(FALLBACK.antam1g, SOURCES.antam1g),
-    ihsg: ihsg.status === "fulfilled" ? ihsg.value : fallbackMetric(FALLBACK.ihsg, SOURCES.ihsg),
+    biRate: biRate.status === "fulfilled" ? biRate.value : fallbackMetric(FALLBACK.biRate, "BI feed"),
+    usdIdr: usdIdr.status === "fulfilled" ? usdIdr.value : fallbackMetric(FALLBACK.usdIdr, "Yahoo API"),
+    antam1g: antam1g.status === "fulfilled" ? antam1g.value : fallbackMetric(FALLBACK.antam1g, "Logam Mulia feed"),
+    ihsg: ihsg.status === "fulfilled" ? ihsg.value : fallbackMetric(FALLBACK.ihsg, "Yahoo API"),
   };
 
   return Response.json(

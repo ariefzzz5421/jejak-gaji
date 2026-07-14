@@ -17,6 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     description:
       "Kalkulator estimasi penghasilan seumur hidup untuk Guru, Polisi, TNI, pekerja UMK/UMP, dan Freelancer Indonesia berdasarkan data 2026.",
+    icons: { icon: "/icon.svg" },
     openGraph: {
       title: "Jejak Gaji — Seumur hidup bekerja, terkumpul berapa?",
       description: "Kalkulator karier Indonesia berdasarkan data 2026.",

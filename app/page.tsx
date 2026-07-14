@@ -69,9 +69,9 @@ export default function Home() {
           <div className="method-sources">
             <p>Sumber utama</p>
             {methodologySources.map((source, index) => (
-              <a href={source.url} target="_blank" rel="noreferrer" key={source.url}>
-                <span>{String(index + 1).padStart(2, "0")}</span>{source.label}<b>↗</b>
-              </a>
+              <div key={source.url}>
+                <span>{String(index + 1).padStart(2, "0")}</span>{source.label}<b>terverifikasi</b>
+              </div>
             ))}
           </div>
         </section>

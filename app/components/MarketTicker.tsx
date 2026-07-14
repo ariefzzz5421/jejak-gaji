@@ -6,7 +6,7 @@ type Metric = {
   value: number;
   date?: string;
   changePercent?: number;
-  source: string;
+  provider: "Yahoo API" | "BI feed" | "Logam Mulia feed";
   isFallback: boolean;
 };
 
@@ -42,7 +42,7 @@ export function MarketTicker() {
         const next = (await response.json()) as MarketResponse;
         if (active) setData(next);
       } catch {
-        // Keep the calm loading state; the API itself supplies per-source fallbacks.
+        // The API route already keeps a dated fallback for every metric.
       }
     };
 
@@ -59,60 +59,58 @@ export function MarketTicker() {
   const cells = [
     {
       key: "bi",
-      label: "BI Rate · acuan SBN",
-      value: metrics ? `${number.format(metrics.biRate.value)}%` : "Memuat...",
+      label: "SBN / BI Bonds Yield",
+      value: metrics ? `${number.format(metrics.biRate.value)}%` : "—",
       metric: metrics?.biRate,
-      source: "https://www.bi.go.id/id/statistik/indikator/bi-rate.aspx",
     },
     {
       key: "usd",
       label: "USD / IDR",
-      value: metrics ? rupiah.format(metrics.usdIdr.value).replace("Rp", "Rp ") : "Memuat...",
+      value: metrics ? rupiah.format(metrics.usdIdr.value).replace("Rp", "Rp ") : "—",
       metric: metrics?.usdIdr,
-      source: "https://frankfurter.dev/",
+      change: metrics?.usdIdr.changePercent,
     },
     {
       key: "gold",
       label: "Antam 1 gram",
-      value: metrics ? rupiah.format(metrics.antam1g.value).replace("Rp", "Rp ") : "Memuat...",
+      value: metrics ? rupiah.format(metrics.antam1g.value).replace("Rp", "Rp ") : "—",
       metric: metrics?.antam1g,
-      source: "https://www.logammulia.com/id/harga-emas-hari-ini",
     },
     {
       key: "ihsg",
       label: "IHSG Composite",
-      value: metrics ? number.format(metrics.ihsg.value) : "Memuat...",
+      value: metrics ? number.format(metrics.ihsg.value) : "—",
       metric: metrics?.ihsg,
       change: metrics?.ihsg.changePercent,
-      source: "https://finance.yahoo.com/quote/%5EJKSE/",
     },
   ];
 
   return (
-    <section className="market-ticker" aria-label="Ringkasan data pasar Indonesia">
+    <section className="market-ticker" aria-label="Ringkasan data pasar Indonesia via API">
       <div className="market-status">
         <span className={data?.allLive ? "live-dot" : "live-dot soft"} />
-        <b>Data pasar</b>
-        <small>{data ? (data.allLive ? "live" : "live + cadangan") : "menghubungkan"}</small>
+        <b>Market feed</b>
+        <small>{data ? "diberi data via API" : "menghubungkan API"}</small>
       </div>
       <div className="market-cells">
         {cells.map((cell) => (
-          <a
+          <div
+            className="market-cell"
             key={cell.key}
-            href={cell.metric?.source ?? cell.source}
-            target="_blank"
-            rel="noreferrer"
-            title={cell.metric?.date ? `Data ${cell.metric.date}` : "Sumber data"}
+            title={cell.metric?.date ? `Data ${cell.metric.date}` : "Menunggu data API"}
           >
             <span>{cell.label}</span>
-            <strong>{cell.value}</strong>
-            {typeof cell.change === "number" ? (
-              <em className={cell.change >= 0 ? "positive" : "negative"}>
-                {cell.change >= 0 ? "+" : ""}{cell.change.toFixed(2)}%
-              </em>
-            ) : null}
+            <div className="market-value-row">
+              <strong>{cell.value}</strong>
+              {typeof cell.change === "number" ? (
+                <em className={cell.change >= 0 ? "positive" : "negative"}>
+                  {cell.change >= 0 ? "+" : ""}{cell.change.toFixed(2)}%
+                </em>
+              ) : null}
+            </div>
+            <small>{cell.metric?.provider ?? "API feed"}</small>
             {cell.metric?.isFallback ? <i>cadangan</i> : null}
-          </a>
+          </div>
         ))}
       </div>
     </section>

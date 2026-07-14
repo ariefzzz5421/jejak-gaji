@@ -29,7 +29,7 @@ export function JobSelector() {
               <span>{item.salaryBasis}</span>
             </div>
             <div className="card-footer">
-              <span>Pensiun {item.retirementAge} tahun</span>
+              <span>{item.retirementIsTarget ? "Target" : "Pensiun"} {item.retirementAge} tahun</span>
               <b>{selected === item.slug ? "✓" : "+"}</b>
             </div>
           </button>

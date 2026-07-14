@@ -7,13 +7,17 @@ export type Profession = {
   eyebrow: string;
   tagline: string;
   description: string;
-  icon: string;
+  image: string;
   accent: string;
   softAccent: string;
   defaultSalary: number;
   startAge: number;
   retirementAge: number;
   annualPayments: number;
+  benchmarkLabel: string;
+  benchmarkYear: number;
+  retirementRule: string;
+  retirementIsTarget?: boolean;
   salaryBasis: string;
   salaryNote: string;
   salarySource: string;
@@ -27,17 +31,20 @@ export const professions: Record<ProfessionSlug, Profession> = {
     eyebrow: "Jalur pendidikan",
     tagline: "Berapa nilai satu masa bakti seorang guru?",
     description:
-      "Simulasi Guru ASN dengan gaji pokok, tunjangan, THR, dan gaji ke-13 yang disederhanakan menjadi penghasilan bulanan.",
-    icon: "✦",
+      "Benchmark otomatis Guru ASN memakai gaji pokok awal PNS Golongan III/a. Tunjangan sertifikasi dan daerah tidak dimasukkan agar estimasi tetap konservatif.",
+    image: "/professions/guru.png",
     accent: "#9c451f",
     softAccent: "#f6dfcf",
-    defaultSalary: 5_500_000,
+    defaultSalary: 2_785_700,
     startAge: 23,
     retirementAge: 60,
     annualPayments: 14,
-    salaryBasis: "Contoh total penghasilan Rp5,5 juta/bulan",
+    benchmarkLabel: "PNS Golongan III/a · masa kerja 0 tahun",
+    benchmarkYear: 2024,
+    retirementRule: "BUP Guru ASN 60 tahun",
+    salaryBasis: "Benchmark otomatis Rp2.785.700/bulan",
     salaryNote:
-      "Gaji pokok PNS Golongan III/a resmi berada di Rp2,79–4,58 juta; total yang diterima berbeda menurut masa kerja, sertifikasi, dan tunjangan daerah.",
+      "PP 5/2024 menetapkan gaji pokok awal PNS Golongan III/a Rp2.785.700. Nilai riil dapat lebih tinggi karena masa kerja, sertifikasi, dan tunjangan daerah.",
     salarySource: "https://peraturan.bpk.go.id/Details/276755/pp-no-5-tahun-2024",
   },
   polisi: {
@@ -47,17 +54,20 @@ export const professions: Record<ProfessionSlug, Profession> = {
     eyebrow: "Jalur kepolisian",
     tagline: "Lihat nilai ekonomi dari puluhan tahun dinas.",
     description:
-      "Contoh anggota Polri dengan penghasilan Rp6 juta per bulan, sesuai contoh awal dan dapat disesuaikan dengan pangkat serta tunjangan.",
-    icon: "⬡",
+      "Benchmark otomatis anggota Polri jalur Bripda memakai gaji pokok awal resmi. Tunjangan kinerja, jabatan, dan wilayah tidak dimasukkan.",
+    image: "/professions/polisi.png",
     accent: "#174b3d",
     softAccent: "#d7e9df",
-    defaultSalary: 6_000_000,
+    defaultSalary: 2_272_100,
     startAge: 19,
     retirementAge: 59,
     annualPayments: 14,
-    salaryBasis: "Contoh total penghasilan Rp6 juta/bulan",
+    benchmarkLabel: "Bripda · masa kerja 0 tahun",
+    benchmarkYear: 2024,
+    retirementRule: "BUP Bintara/Tamtama Polri 59 tahun",
+    salaryBasis: "Benchmark otomatis Rp2.272.100/bulan",
     salaryNote:
-      "Gaji pokok Bripda resmi Rp2,27–3,73 juta. Simulasi memakai total penghasilan contoh karena tunjangan dan masa kerja sangat bervariasi.",
+      "PP 7/2024 menetapkan gaji pokok awal Bripda Rp2.272.100. UU 5/2026 menetapkan BUP Bintara/Tamtama 59 tahun; Perwira umumnya 60 tahun.",
     salarySource: "https://peraturan.bpk.go.id/Details/276772/pp-no-7-tahun-2024",
   },
   tni: {
@@ -67,17 +77,20 @@ export const professions: Record<ProfessionSlug, Profession> = {
     eyebrow: "Jalur pertahanan",
     tagline: "Hitung masa dinas, penghasilan, dan masa pensiun.",
     description:
-      "Simulasi prajurit TNI jalur Bintara/Tamtama. Usia pensiun dapat diubah untuk menyesuaikan pangkat dan jalur karier.",
-    icon: "★",
+      "Benchmark otomatis prajurit TNI jalur Serda memakai gaji pokok awal resmi dan batas usia pensiun Bintara/Tamtama.",
+    image: "/professions/tni.png",
     accent: "#42512d",
     softAccent: "#e0e6d3",
-    defaultSalary: 6_000_000,
+    defaultSalary: 2_272_100,
     startAge: 19,
     retirementAge: 55,
     annualPayments: 14,
-    salaryBasis: "Contoh total penghasilan Rp6 juta/bulan",
+    benchmarkLabel: "Serda · masa kerja 0 tahun",
+    benchmarkYear: 2024,
+    retirementRule: "BUP Bintara/Tamtama TNI 55 tahun",
+    salaryBasis: "Benchmark otomatis Rp2.272.100/bulan",
     salaryNote:
-      "Gaji pokok mengikuti PP 6/2024. Batas pensiun dasar 55 tahun untuk Bintara/Tamtama dan 58 tahun untuk Perwira hingga Kolonel.",
+      "PP 6/2024 menetapkan gaji pokok awal Serda Rp2.272.100. UU 3/2025 menetapkan BUP Bintara/Tamtama 55 tahun dan Perwira sampai Kolonel 58 tahun.",
     salarySource: "https://peraturan.bpk.go.id/Details/276758/pp-no-6-tahun-2024",
   },
   "upah-minimum": {
@@ -88,13 +101,16 @@ export const professions: Record<ProfessionSlug, Profession> = {
     tagline: "Mulai dari kota tempatmu bekerja.",
     description:
       "Pilih kota untuk mengisi UMK atau UMP 2026 secara otomatis. Nilai berlaku sebagai batas minimum bagi pekerja dengan masa kerja kurang dari satu tahun.",
-    icon: "⌖",
+    image: "/professions/upah-minimum.png",
     accent: "#29476d",
     softAccent: "#dce8f4",
     defaultSalary: 2_742_806,
     startAge: 20,
     retirementAge: 59,
     annualPayments: 13,
+    benchmarkLabel: "UMK Kota Kediri · pekerja <1 tahun",
+    benchmarkYear: 2026,
+    retirementRule: "Usia pensiun program JP 59 tahun",
     salaryBasis: "Otomatis mengikuti UMK/UMP kota 2026",
     salaryNote:
       "UMK/UMP bukan rata-rata gaji dan terutama berlaku untuk pekerja dengan masa kerja kurang dari satu tahun. THR dihitung sebagai satu kali upah.",
@@ -107,18 +123,22 @@ export const professions: Record<ProfessionSlug, Profession> = {
     eyebrow: "Jalur kerja mandiri",
     tagline: "Pendapatan tidak tetap tetap bisa punya arah.",
     description:
-      "Simulasi pekerja lepas dengan pendapatan bulanan yang bisa diubah. Tidak ada THR atau usia pensiun wajib, jadi target pensiun dan dana pengaman perlu ditentukan sendiri.",
-    icon: "F",
+      "Benchmark otomatis pekerja mandiri memakai rata-rata pendapatan bersih nasional terbaru. Angka ini adalah proksi, bukan tarif baku freelancer digital.",
+    image: "/professions/freelance.png",
     accent: "#6a3f72",
     softAccent: "#eaddef",
-    defaultSalary: 6_000_000,
+    defaultSalary: 1_920_000,
     startAge: 20,
     retirementAge: 60,
     annualPayments: 12,
-    salaryBasis: "Isi rata-rata pendapatan bersih per bulan",
+    benchmarkLabel: "Pekerja berusaha sendiri · rata-rata nasional",
+    benchmarkYear: 2026,
+    retirementRule: "Target pensiun mandiri 60 tahun",
+    retirementIsTarget: true,
+    salaryBasis: "Benchmark BPS Rp1,92 juta/bulan",
     salaryNote:
-      "Pendapatan freelance dapat berubah tiap bulan dan biasanya tidak memiliki THR, gaji ke-13, atau pensiun dari pemberi kerja. Gunakan rata-rata 6-12 bulan agar hasil lebih masuk akal.",
-    salarySource: "https://www.bps.go.id/id/statistics-table/2/MTk3NSMy/persentase-tenaga-kerja-formal-menurut-provinsi.html",
+      "Sakernas/BPS Februari 2026 mencatat rata-rata pendapatan pekerja berusaha sendiri Rp1,92 juta per bulan. Freelancer nyata sangat bervariasi dan tidak memiliki BUP wajib.",
+    salarySource: "https://www.bps.go.id/id/statistics-table/2/NTY2IzI%3D/rata-rata-pendapatan-bersih-sebulan-pekerja-berusaha-sendiri-menurut-lapangan-pekerjaan-utama.html",
   },
 };
 
@@ -189,6 +209,7 @@ export const investments = {
 } as const;
 
 export const referenceData = {
+  currentYear: 2026,
   asOf: "14 Juli 2026",
   lifeExpectancy: 73.93,
   inflation: 3.34,
@@ -199,31 +220,27 @@ export const referenceData = {
 
 export const methodologySources = [
   {
-    label: "BPS — UHH Indonesia 2025: 73,93 tahun",
-    url: "https://www.bps.go.id/id/pressrelease/2025/11/05/2480/indeks-pembangunan-manusia--ipm-.html",
+    label: "Yahoo Finance API — USD/IDR dan IHSG",
+    url: "https://query1.finance.yahoo.com/v8/finance/chart/%5EJKSE",
   },
   {
-    label: "BI — BI-Rate 5,75% dan inflasi 3,34%",
+    label: "BI dan Logam Mulia — feed suku bunga serta Antam",
     url: "https://www.bi.go.id/id/statistik/indikator/Default.aspx",
   },
   {
-    label: "DJPPR — kupon minimum SBR014",
-    url: "https://djppr.kemenkeu.go.id/savingsbondritel",
+    label: "BPS — UHH Indonesia 2025: 73,93 tahun",
+    url: "https://www.bps.go.id/id/pressrelease/2025/11/05/2480/indeks-pembangunan-manusia--ipm-.html",
   },
   {
     label: "BKN — batas pensiun Guru 60 tahun",
     url: "https://www.bkn.go.id/cek-batas-usia-pensiun-pns-berdasarkan-jenis-jabatan/",
   },
   {
-    label: "BPJS — usia pensiun pekerja 59 tahun",
-    url: "https://www.bpjsketenagakerjaan.go.id/artikel/18905/artikel-prosedur-klaim-jaminan-pensiun-%28jp%29-bpjs-ketenagakerjaan.bpjs",
-  },
-  {
     label: "UU 5/2026 — batas pensiun Polri terbaru",
     url: "https://peraturan.bpk.go.id/Details/350096/uu-no-5-tahun-2026",
   },
   {
-    label: "Harga emas Antam 13 Juli 2026",
-    url: "https://www.industry.co.id/read/153078/harga-emas-hari-ini-14-juli-2026-antam-ubs-dan-galeri-24-lengkap",
+    label: "UU 3/2025 — batas pensiun TNI terbaru",
+    url: "https://peraturan.bpk.go.id/Details/319166/uu-no-3-tahun-2025",
   },
 ];

@@ -18,7 +18,7 @@ export function ProfessionPage({ profession }: { profession: Profession }) {
             <p>{profession.description}</p>
             <div className="hero-facts">
               <span><b>{profession.startAge}</b> usia mulai</span>
-              <span><b>{profession.retirementAge}</b> estimasi pensiun</span>
+              <span><b>{profession.retirementAge}</b> {profession.retirementIsTarget ? "target pensiun" : "usia pensiun"}</span>
               <span><b>{profession.annualPayments}×</b> gaji / tahun</span>
             </div>
           </div>
@@ -30,7 +30,7 @@ export function ProfessionPage({ profession }: { profession: Profession }) {
             <span>Langkah 2 dari 2</span>
             <strong>Jejak Gaji {profession.name}</strong>
           </div>
-          <p>Atur angka di bawah sesuai keadaanmu. Pilihan pekerjaan tidak dicampur dengan hasil perhitungan.</p>
+          <p>Benchmark profesi terisi otomatis. Kamu hanya mengatur asumsi pertumbuhan gaji dan porsi tabungan; pekerja UMK/UMP cukup memilih daerah.</p>
         </div>
 
         <LifetimeCalculator profession={profession} />
@@ -38,12 +38,12 @@ export function ProfessionPage({ profession }: { profession: Profession }) {
         <section className="page-sources">
           <div>
             <p className="section-kicker">Transparansi data</p>
-            <h2>Sumber yang dipakai</h2>
+            <h2>Referensi yang dipakai</h2>
           </div>
           <div className="source-links">
-            <a href={profession.salarySource} target="_blank" rel="noreferrer">Dasar gaji {profession.navName} ↗</a>
+            <div><span>Dasar gaji {profession.navName}</span><b>referensi resmi</b></div>
             {methodologySources.slice(0, 4).map((source) => (
-              <a href={source.url} target="_blank" rel="noreferrer" key={source.url}>{source.label} ↗</a>
+              <div key={source.url}><span>{source.label}</span><b>data terkurasi</b></div>
             ))}
           </div>
         </section>

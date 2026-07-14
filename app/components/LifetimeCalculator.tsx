@@ -23,16 +23,22 @@ const compactRupiah = (value: number) => {
   return rupiah.format(value);
 };
 
-const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+const loadCanvasImage = (src: string) =>
+  new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new window.Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = src;
+  });
 
 export function LifetimeCalculator({ profession }: { profession: Profession }) {
+  const isMinimumWage = profession.slug === "upah-minimum";
   const [cityId, setCityId] = useState("kediri");
   const [salary, setSalary] = useState(profession.defaultSalary);
-  const [startAge, setStartAge] = useState(profession.startAge);
-  const [retirementAge, setRetirementAge] = useState(profession.retirementAge);
   const [salaryGrowth, setSalaryGrowth] = useState(3);
   const [savingRate, setSavingRate] = useState(15);
   const [instrumentId, setInstrumentId] = useState<keyof typeof investments>("sbn");
+  const [isDownloading, setIsDownloading] = useState(false);
   const [assetPrices, setAssetPrices] = useState({
     gold: referenceData.gold10g,
     car: referenceData.car,
@@ -62,9 +68,15 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
 
   const city = cityWages.find((item) => item.id === cityId) ?? cityWages[0];
   const instrument = investments[instrumentId];
+  const startAge = profession.startAge;
+  const retirementAge = profession.retirementAge;
   const workYears = Math.max(retirementAge - startAge, 1);
+  const retirementYear = referenceData.currentYear + workYears;
   const postRetirementYears = Math.max(referenceData.lifeExpectancy - retirementAge, 0);
   const realYield = instrument.netYield - referenceData.inflation;
+  const benchmarkLabel = isMinimumWage
+    ? `${city.type} ${city.city} · pekerja <1 tahun`
+    : profession.benchmarkLabel;
 
   const calculation = useMemo(() => {
     const months = workYears * 12;
@@ -95,7 +107,7 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
   const handleCity = (nextId: string) => {
     const nextCity = cityWages.find((item) => item.id === nextId);
     setCityId(nextId);
-    if (profession.slug === "upah-minimum" && nextCity) setSalary(nextCity.amount);
+    if (nextCity) setSalary(nextCity.amount);
   };
 
   const assets = [
@@ -103,7 +115,7 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
       id: "gold" as const,
       name: "Emas Antam 10g",
       price: assetPrices.gold,
-      helper: `${goldPriceLive ? "harga Logam Mulia live" : "harga acuan"} · 10 gram`,
+      helper: `${goldPriceLive ? "Logam Mulia API" : "harga acuan"} · 10 gram`,
       image: "/antam-10g.jpg",
       alt: "Emas batangan Antam 10 gram dalam kemasan",
       fit: "contain",
@@ -134,82 +146,175 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
     },
   ];
 
+  const downloadSummary = async () => {
+    setIsDownloading(true);
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = 1200;
+      canvas.height = 1500;
+      const context = canvas.getContext("2d");
+      if (!context) return;
+
+      context.fillStyle = "#f5f0e6";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.strokeStyle = "rgba(33,31,26,.07)";
+      context.lineWidth = 1;
+      for (let line = 0; line <= canvas.width; line += 60) {
+        context.beginPath();
+        context.moveTo(line, 0);
+        context.lineTo(line, canvas.height);
+        context.stroke();
+      }
+      for (let line = 0; line <= canvas.height; line += 60) {
+        context.beginPath();
+        context.moveTo(0, line);
+        context.lineTo(canvas.width, line);
+        context.stroke();
+      }
+
+      context.fillStyle = profession.accent;
+      context.fillRect(0, 0, canvas.width, 430);
+      const logo = await loadCanvasImage(profession.image);
+      context.save();
+      context.beginPath();
+      context.arc(125, 120, 65, 0, Math.PI * 2);
+      context.clip();
+      context.drawImage(logo, 60, 55, 130, 130);
+      context.restore();
+
+      context.fillStyle = "rgba(255,255,255,.72)";
+      context.font = "600 24px Segoe UI, Arial";
+      context.letterSpacing = "3px";
+      context.fillText("RINGKASAN JEJAK GAJI · 2026", 225, 105);
+      context.fillStyle = "#fffdf8";
+      context.font = "400 58px Georgia, serif";
+      context.fillText(profession.name, 225, 165);
+      context.font = "400 108px Georgia, serif";
+      context.fillText(compactRupiah(calculation.totalIncome), 70, 320);
+      context.font = "400 25px Segoe UI, Arial";
+      context.fillStyle = "rgba(255,255,255,.72)";
+      context.fillText("estimasi penghasilan kotor selama masa kerja", 75, 365);
+
+      const drawMetric = (label: string, value: string, x: number, y: number, width = 500) => {
+        context.fillStyle = "#6f6b61";
+        context.font = "600 20px Segoe UI, Arial";
+        context.fillText(label.toUpperCase(), x, y);
+        context.fillStyle = "#211f1a";
+        context.font = "400 38px Georgia, serif";
+        context.fillText(value, x, y + 52, width);
+      };
+
+      context.fillStyle = "#fffdf8";
+      context.fillRect(55, 475, 1090, 250);
+      drawMetric("Benchmark otomatis", rupiah.format(salary), 90, 525, 470);
+      drawMetric("Masa kerja", `${workYears} tahun`, 630, 525, 420);
+      drawMetric("Mulai kerja", `Usia ${startAge} · ${referenceData.currentYear}`, 90, 635, 470);
+      drawMetric(
+        profession.retirementIsTarget ? "Target pensiun" : "Pensiun sesuai BUP",
+        `Usia ${retirementAge} · ${retirementYear}`,
+        630,
+        635,
+        420,
+      );
+
+      context.fillStyle = profession.accent;
+      context.fillRect(55, 760, 1090, 300);
+      context.fillStyle = "rgba(255,255,255,.7)";
+      context.font = "600 20px Segoe UI, Arial";
+      context.fillText(`${savingRate}% PENGHASILAN DISISIHKAN`, 90, 815);
+      context.fillStyle = "#fffdf8";
+      context.font = "400 42px Georgia, serif";
+      context.fillText(`Tunai  ${compactRupiah(calculation.cashSaved)}`, 90, 885);
+      context.fillText(`${instrument.name}  ${compactRupiah(calculation.invested)}`, 90, 955);
+      context.fillStyle = "rgba(255,255,255,.7)";
+      context.font = "400 23px Segoe UI, Arial";
+      context.fillText(`Yield neto ${instrument.netYield.toFixed(2)}% · potensi tambahan ${compactRupiah(calculation.growth)}`, 90, 1015);
+
+      context.fillStyle = "#211f1a";
+      context.font = "400 36px Georgia, serif";
+      context.fillText("Daya beli dalam kelipatan gaji", 70, 1135);
+      assets.forEach((asset, index) => {
+        const x = 70 + index * 360;
+        context.fillStyle = "#6f6b61";
+        context.font = "600 18px Segoe UI, Arial";
+        context.fillText(asset.name.toUpperCase(), x, 1195, 310);
+        context.fillStyle = profession.accent;
+        context.font = "400 44px Georgia, serif";
+        context.fillText(`${(asset.price / salary).toFixed(1)}× gaji`, x, 1255, 310);
+      });
+
+      context.fillStyle = "#6f6b61";
+      context.font = "400 20px Segoe UI, Arial";
+      context.fillText(benchmarkLabel, 70, 1350, 1050);
+      context.fillText(`Acuan ${profession.benchmarkYear} · UHH ${referenceData.lifeExpectancy} tahun · kenaikan gaji ${salaryGrowth}%/tahun`, 70, 1385, 1050);
+      context.font = "400 17px Segoe UI, Arial";
+      context.fillText("Simulasi edukasi, bukan janji pendapatan atau keuntungan investasi.", 70, 1440);
+      context.fillStyle = profession.accent;
+      context.font = "700 20px Segoe UI, Arial";
+      context.fillText("JEJAK GAJI", 965, 1440);
+
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `jejak-gaji-${profession.slug}-2026.png`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   return (
     <div className="calculator-shell">
       <section className="calculator-controls" aria-labelledby="input-title">
         <div className="section-heading compact-heading">
           <span className="step-number">01</span>
           <div>
-            <p className="section-kicker">Atur asumsi</p>
-            <h2 id="input-title">Ceritakan jalur kerjamu</h2>
+            <p className="section-kicker">Benchmark otomatis</p>
+            <h2 id="input-title">Jalurmu sudah diisi</h2>
           </div>
         </div>
 
         <div className="control-stack">
-          <label className="field-label" htmlFor="city">
-            <span>Kota tempat bekerja</span>
-            <select id="city" value={cityId} onChange={(event) => handleCity(event.target.value)}>
-              {cityWages.map((item) => (
-                <option value={item.id} key={item.id}>
-                  {item.city} · {item.type} {rupiah.format(item.amount)}
-                </option>
-              ))}
-            </select>
-            <small>
-              {city.type} 2026 {city.city}: <strong>{rupiah.format(city.amount)}</strong> ·{" "}
-              <a href={city.source} target="_blank" rel="noreferrer">lihat sumber</a>
-            </small>
-          </label>
+          {isMinimumWage ? (
+            <label className="field-label" htmlFor="city">
+              <span>Daerah tempat tinggal dan bekerja</span>
+              <select id="city" value={cityId} onChange={(event) => handleCity(event.target.value)}>
+                {cityWages.map((item) => (
+                  <option value={item.id} key={item.id}>
+                    {item.city} · {item.type} {rupiah.format(item.amount)}
+                  </option>
+                ))}
+              </select>
+              <small>{city.type} 2026 · benchmark daerah terpilih otomatis</small>
+            </label>
+          ) : null}
 
-          <div className="field-label">
-            <div className="label-row">
-              <span>Penghasilan per bulan</span>
+          <div className="benchmark-card">
+            <div className="benchmark-card-head">
+              <Image src={profession.image} alt="" width={1024} height={1024} sizes="64px" unoptimized />
+              <div>
+                <span>Benchmark {isMinimumWage ? 2026 : profession.benchmarkYear}</span>
+                <strong>{benchmarkLabel}</strong>
+              </div>
+            </div>
+            <div className="benchmark-salary">
+              <span>Penghasilan awal per bulan</span>
               <strong>{rupiah.format(salary)}</strong>
             </div>
-            <input
-              aria-label="Penghasilan per bulan"
-              type="range"
-              min={1_500_000}
-              max={30_000_000}
-              step={100_000}
-              value={salary}
-              onChange={(event) => setSalary(Number(event.target.value))}
-            />
-            <div className="range-ends"><span>Rp1,5 jt</span><span>Rp30 jt</span></div>
+            <div className="benchmark-facts">
+              <div><span>Mulai bekerja</span><strong>{startAge} tahun</strong></div>
+              <div><span>{profession.retirementIsTarget ? "Target pensiun" : "Usia pensiun"}</span><strong>{retirementAge} tahun</strong></div>
+              <div><span>Jika mulai 2026</span><strong>{retirementYear}</strong></div>
+            </div>
+            <p>{profession.retirementRule}</p>
           </div>
 
-          <div className="split-fields">
-            <label className="field-label" htmlFor="start-age">
-              <span>Mulai bekerja</span>
-              <div className="number-field">
-                <input
-                  id="start-age"
-                  type="number"
-                  min={17}
-                  max={45}
-                  value={startAge}
-                  onChange={(event) => setStartAge(clamp(Number(event.target.value), 17, 45))}
-                />
-                <span>tahun</span>
-              </div>
-            </label>
-            <label className="field-label" htmlFor="retirement-age">
-              <span>Estimasi pensiun</span>
-              <div className="number-field">
-                <input
-                  id="retirement-age"
-                  type="number"
-                  min={Math.max(startAge + 1, 40)}
-                  max={70}
-                  value={retirementAge}
-                  onChange={(event) => setRetirementAge(clamp(Number(event.target.value), startAge + 1, 70))}
-                />
-                <span>tahun</span>
-              </div>
-            </label>
-          </div>
-
-          <div className="split-fields">
+          <div className="split-fields assumption-sliders">
             <div className="field-label">
               <div className="label-row"><span>Kenaikan gaji</span><strong>{salaryGrowth}% / th</strong></div>
               <input aria-label="Kenaikan gaji tahunan" type="range" min={0} max={10} step={0.5} value={salaryGrowth} onChange={(event) => setSalaryGrowth(Number(event.target.value))} />
@@ -234,7 +339,7 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
         </div>
         <p className="hero-number">{compactRupiah(calculation.totalIncome)}</p>
         <p className="result-caption">
-          Nominal sebelum biaya hidup, dengan kenaikan gaji {salaryGrowth}% per tahun dan {profession.annualPayments} kali pembayaran gaji per tahun.
+          Nominal sebelum biaya hidup, dengan kenaikan gaji {salaryGrowth}% per tahun dan {profession.annualPayments} kali pembayaran per tahun.
         </p>
 
         <div className="life-timeline" aria-label="Garis waktu hidup dan kerja">
@@ -247,14 +352,21 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
             <span className="timeline-after" />
             <i className="timeline-person" style={{ left: `${(retirementAge / referenceData.lifeExpectancy) * 100}%` }}>●</i>
           </div>
-          <p>Setelah pensiun, ada sekitar <strong>{postRetirementYears.toFixed(1)} tahun</strong> yang perlu dibiayai menurut rata-rata harapan hidup nasional.</p>
+          <p>
+            {profession.retirementIsTarget ? "Target pensiun" : "Batas pensiun"} jatuh sekitar <strong>{retirementYear}</strong> jika mulai pada 2026. Setelah itu ada sekitar <strong>{postRetirementYears.toFixed(1)} tahun</strong> hingga UHH nasional.
+          </p>
         </div>
 
         <div className="mini-metrics">
           <div><span>Setara bulanan + bonus</span><strong>{compactRupiah(calculation.monthlyEquivalent)}</strong></div>
-          <div><span>Masa kerja</span><strong>{workYears} tahun</strong></div>
+          <div><span>Tahun pensiun</span><strong>{retirementYear}</strong></div>
           <div><span>Masa setelah pensiun</span><strong>{postRetirementYears.toFixed(1)} tahun</strong></div>
         </div>
+
+        <button className="download-summary" type="button" onClick={downloadSummary} disabled={isDownloading}>
+          <span aria-hidden="true">↓</span>
+          {isDownloading ? "Menyiapkan gambar..." : "Unduh ringkasan PNG"}
+        </button>
       </section>
 
       <section className="investment-panel full-span">
@@ -323,6 +435,7 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
                     width={asset.width}
                     height={asset.height}
                     sizes="(max-width: 680px) 100vw, 33vw"
+                    unoptimized
                   />
                 </div>
                 <p>{asset.name}</p>
@@ -348,7 +461,7 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
 
       <footer className="calculator-footer full-span">
         <p><strong>Angka bukan takdir.</strong> Kalkulator ini membantu melihat skala, bukan meramal masa depan.</p>
-        <Link href="/#metodologi">Baca metodologi & sumber <span aria-hidden="true">→</span></Link>
+        <Link href="/#metodologi">Baca metodologi data <span aria-hidden="true">→</span></Link>
       </footer>
     </div>
   );

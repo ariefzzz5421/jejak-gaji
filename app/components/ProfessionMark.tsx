@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { Profession } from "../data";
 
 export function ProfessionMark({ profession, large = false }: { profession: Profession; large?: boolean }) {
@@ -11,7 +12,16 @@ export function ProfessionMark({ profession, large = false }: { profession: Prof
       aria-label={`Lambang ${profession.name}`}
     >
       <span className="mark-orbit" aria-hidden="true" />
-      <span className="mark-icon" aria-hidden="true">{profession.icon}</span>
+      <Image
+        className="mark-image"
+        src={profession.image}
+        alt=""
+        width={1024}
+        height={1024}
+        sizes={large ? "310px" : "132px"}
+        priority={large}
+        unoptimized
+      />
       <span className="mark-label">{profession.navName}</span>
     </div>
   );
