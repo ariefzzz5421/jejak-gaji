@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { methodologySources, professionList, referenceData, type Profession } from "../data";
+import { methodologySources, referenceData, type Profession } from "../data";
 import { LifetimeCalculator } from "./LifetimeCalculator";
 import { ProfessionMark } from "./ProfessionMark";
 import { SiteHeader } from "./SiteHeader";
@@ -9,8 +9,10 @@ export function ProfessionPage({ profession }: { profession: Profession }) {
     <main style={{ "--accent": profession.accent, "--accent-soft": profession.softAccent } as React.CSSProperties}>
       <div className="page-wrap">
         <SiteHeader />
+
         <section className="profession-hero">
           <div className="profession-hero-copy">
+            <Link href="/#profesi" className="back-to-jobs">← Ganti pekerjaan</Link>
             <p className="eyebrow"><span />{profession.eyebrow} · data {referenceData.asOf}</p>
             <h1>{profession.tagline}</h1>
             <p>{profession.description}</p>
@@ -23,13 +25,12 @@ export function ProfessionPage({ profession }: { profession: Profession }) {
           <ProfessionMark profession={profession} large />
         </section>
 
-        <div className="profession-switcher" aria-label="Ganti profesi">
-          <span>Bandingkan profesi:</span>
-          {professionList.map((item) => (
-            <Link key={item.slug} className={item.slug === profession.slug ? "active" : ""} href={`/profesi/${item.slug}`}>
-              {item.navName}
-            </Link>
-          ))}
+        <div className="calculation-divider">
+          <div>
+            <span>Langkah 2 dari 2</span>
+            <strong>Jejak Gaji {profession.name}</strong>
+          </div>
+          <p>Atur angka di bawah sesuai keadaanmu. Pilihan pekerjaan tidak dicampur dengan hasil perhitungan.</p>
         </div>
 
         <LifetimeCalculator profession={profession} />

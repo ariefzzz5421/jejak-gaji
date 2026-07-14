@@ -1,4 +1,4 @@
-export type ProfessionSlug = "guru" | "polisi" | "tni" | "upah-minimum";
+export type ProfessionSlug = "guru" | "polisi" | "tni" | "upah-minimum" | "freelance";
 
 export type Profession = {
   slug: ProfessionSlug;
@@ -100,6 +100,26 @@ export const professions: Record<ProfessionSlug, Profession> = {
       "UMK/UMP bukan rata-rata gaji dan terutama berlaku untuk pekerja dengan masa kerja kurang dari satu tahun. THR dihitung sebagai satu kali upah.",
     salarySource: "https://www.ptgasi.co.id/wp-content/uploads/2025/12/DAFTAR-UMK-TAHUN-2026.pdf",
   },
+  freelance: {
+    slug: "freelance",
+    name: "Freelancer",
+    navName: "Freelance",
+    eyebrow: "Jalur kerja mandiri",
+    tagline: "Pendapatan tidak tetap tetap bisa punya arah.",
+    description:
+      "Simulasi pekerja lepas dengan pendapatan bulanan yang bisa diubah. Tidak ada THR atau usia pensiun wajib, jadi target pensiun dan dana pengaman perlu ditentukan sendiri.",
+    icon: "F",
+    accent: "#6a3f72",
+    softAccent: "#eaddef",
+    defaultSalary: 6_000_000,
+    startAge: 20,
+    retirementAge: 60,
+    annualPayments: 12,
+    salaryBasis: "Isi rata-rata pendapatan bersih per bulan",
+    salaryNote:
+      "Pendapatan freelance dapat berubah tiap bulan dan biasanya tidak memiliki THR, gaji ke-13, atau pensiun dari pemberi kerja. Gunakan rata-rata 6-12 bulan agar hasil lebih masuk akal.",
+    salarySource: "https://www.bps.go.id/id/statistics-table/2/MTk3NSMy/persentase-tenaga-kerja-formal-menurut-provinsi.html",
+  },
 };
 
 export const professionList = Object.values(professions);
@@ -173,7 +193,7 @@ export const referenceData = {
   lifeExpectancy: 73.93,
   inflation: 3.34,
   gold10g: 26_350_000,
-  car: 300_000_000,
+  car: 281_600_000,
   house: 600_000_000,
 };
 

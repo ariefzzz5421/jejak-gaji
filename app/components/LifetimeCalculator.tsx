@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   cityWages,
   investments,
@@ -37,6 +38,27 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
     car: referenceData.car,
     house: referenceData.house,
   });
+  const [goldPriceLive, setGoldPriceLive] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const controller = new AbortController();
+
+    fetch("/api/market-data", { signal: controller.signal })
+      .then((response) => response.json())
+      .then((data: { metrics?: { antam1g?: { value?: number; isFallback?: boolean } } }) => {
+        const antam1g = data.metrics?.antam1g;
+        if (!active || !antam1g?.value) return;
+        setAssetPrices((current) => ({ ...current, gold: antam1g.value! * 10 }));
+        setGoldPriceLive(!antam1g.isFallback);
+      })
+      .catch(() => undefined);
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, []);
 
   const city = cityWages.find((item) => item.id === cityId) ?? cityWages[0];
   const instrument = investments[instrumentId];
@@ -77,9 +99,39 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
   };
 
   const assets = [
-    { id: "gold" as const, name: "Emas Antam 10g", price: assetPrices.gold, helper: "Rp2,635 jt/gram" },
-    { id: "car" as const, name: "Mobil keluarga", price: assetPrices.car, helper: "contoh kelas Rp300 juta" },
-    { id: "house" as const, name: "Rumah sederhana", price: assetPrices.house, helper: "contoh Rp600 juta" },
+    {
+      id: "gold" as const,
+      name: "Emas Antam 10g",
+      price: assetPrices.gold,
+      helper: `${goldPriceLive ? "harga Logam Mulia live" : "harga acuan"} · 10 gram`,
+      image: "/antam-10g.jpg",
+      alt: "Emas batangan Antam 10 gram dalam kemasan",
+      fit: "contain",
+      width: 250,
+      height: 250,
+    },
+    {
+      id: "car" as const,
+      name: "Toyota Avanza 1.5 G CVT",
+      price: assetPrices.car,
+      helper: "acuan OTR Jakarta 2026",
+      image: "/avanza.png",
+      alt: "Toyota All New Avanza warna abu-abu",
+      fit: "cover",
+      width: 930,
+      height: 620,
+    },
+    {
+      id: "house" as const,
+      name: "Rumah sederhana",
+      price: assetPrices.house,
+      helper: "ilustrasi rumah kelas Rp600 juta",
+      image: "/rumah-600-juta.png",
+      alt: "Rumah sederhana satu lantai dengan carport",
+      fit: "cover",
+      width: 1536,
+      height: 1024,
+    },
   ];
 
   return (
@@ -259,12 +311,19 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
         </div>
 
         <div className="purchase-grid">
-          {assets.map((asset, index) => {
+          {assets.map((asset) => {
             const months = asset.price / salary;
             return (
               <article className="purchase-card" key={asset.id}>
-                <div className="purchase-art" aria-hidden="true">
-                  <span>{index === 0 ? "Au" : index === 1 ? "▰" : "⌂"}</span>
+                <div className="purchase-art">
+                  <Image
+                    className={`asset-image ${asset.fit}`}
+                    src={asset.image}
+                    alt={asset.alt}
+                    width={asset.width}
+                    height={asset.height}
+                    sizes="(max-width: 680px) 100vw, 33vw"
+                  />
                 </div>
                 <p>{asset.name}</p>
                 <div className="price-input-row">
@@ -284,7 +343,7 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
             );
           })}
         </div>
-        <p className="fine-print">Perbandingan ini menganggap 100% gaji dipakai membeli aset, jadi waktu nyata pasti lebih lama setelah biaya hidup. Harga mobil dan rumah adalah contoh nasional yang bisa kamu ubah.</p>
+        <p className="fine-print">Perbandingan ini menganggap 100% gaji dipakai membeli aset, jadi waktu nyata pasti lebih lama setelah biaya hidup. Avanza memakai acuan OTR Jakarta 2026, sedangkan rumah adalah contoh Rp600 juta yang bisa kamu ubah.</p>
       </section>
 
       <footer className="calculator-footer full-span">
