@@ -1,4 +1,4 @@
-export type ProfessionSlug = "guru" | "polisi" | "tni" | "upah-minimum" | "freelance";
+export type ProfessionSlug = "guru" | "polisi" | "tni" | "upah-minimum" | "freelance" | "custom";
 
 export type SalaryOption = {
   id: string;
@@ -33,6 +33,7 @@ export type Profession = {
   salarySource: string;
   salaryOptions?: SalaryOption[];
   defaultSalaryOptionId?: string;
+  customizable?: boolean;
 };
 
 const pnsTeacherGrades: SalaryOption[] = [
@@ -212,6 +213,31 @@ export const professions: Record<ProfessionSlug, Profession> = {
       "Sakernas/BPS Februari 2026 mencatat rata-rata pendapatan pekerja berusaha sendiri Rp1,92 juta per bulan. Freelancer nyata sangat bervariasi dan tidak memiliki BUP wajib.",
     salarySource: "https://www.bps.go.id/id/statistics-table/2/NTY2IzI%3D/rata-rata-pendapatan-bersih-sebulan-pekerja-berusaha-sendiri-menurut-lapangan-pekerjaan-utama.html",
   },
+  custom: {
+    slug: "custom",
+    name: "Custom",
+    navName: "Custom",
+    eyebrow: "Jalur buatanmu",
+    tagline: "Masukkan angka kariermu sendiri.",
+    description:
+      "Isi penghasilan bulanan, usia mulai bekerja, target pensiun, dan jumlah pembayaran gaji sesuai keadaanmu sendiri.",
+    image: "/professions/custom.png",
+    accent: "#0f6570",
+    softAccent: "#d6eceb",
+    defaultSalary: 5_000_000,
+    startAge: 22,
+    retirementAge: 60,
+    annualPayments: 12,
+    benchmarkLabel: "Data custom pengguna",
+    benchmarkYear: 2026,
+    retirementRule: "Target pensiun ditentukan sendiri",
+    retirementIsTarget: true,
+    salaryBasis: "Isi gaji dan usia sendiri",
+    salaryNote:
+      "Semua angka pada jalur Custom berasal dari input pengguna. Hasilnya adalah simulasi nominal dan belum memperhitungkan pajak atau biaya hidup.",
+    salarySource: "custom-user-input",
+    customizable: true,
+  },
 };
 
 export const professionList = Object.values(professions);
@@ -288,6 +314,7 @@ export const referenceData = {
   gold10g: 26_350_000,
   car: 281_600_000,
   house: 600_000_000,
+  ferrari: 10_000_000_000,
 };
 
 export const methodologySources = [

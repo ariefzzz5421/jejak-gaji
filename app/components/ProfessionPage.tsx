@@ -5,6 +5,7 @@ import { ProfessionMark } from "./ProfessionMark";
 import { SiteHeader } from "./SiteHeader";
 
 export function ProfessionPage({ profession }: { profession: Profession }) {
+  const isCustom = profession.slug === "custom";
   const startAges = profession.salaryOptions?.map((item) => item.startAge ?? profession.startAge) ?? [profession.startAge];
   const retirementAges = profession.salaryOptions?.map((item) => item.retirementAge ?? profession.retirementAge) ?? [profession.retirementAge];
   const startAgeLabel = Math.min(...startAges) === Math.max(...startAges)
@@ -39,7 +40,9 @@ export function ProfessionPage({ profession }: { profession: Profession }) {
             <span>Langkah 2 dari 2</span>
             <strong>Jejak Gaji {profession.name}</strong>
           </div>
-          <p>Benchmark profesi terisi otomatis. Kamu hanya mengatur asumsi pertumbuhan gaji dan porsi tabungan; pekerja UMK/UMP cukup memilih daerah.</p>
+          <p>{isCustom
+            ? "Masukkan penghasilan, usia mulai bekerja, target pensiun, dan jumlah pembayaran sesuai keadaanmu."
+            : "Benchmark profesi terisi otomatis. Kamu hanya mengatur asumsi pertumbuhan gaji dan porsi tabungan; pekerja UMK/UMP cukup memilih daerah."}</p>
         </div>
 
         <LifetimeCalculator profession={profession} />
@@ -50,7 +53,7 @@ export function ProfessionPage({ profession }: { profession: Profession }) {
             <h2>Referensi yang dipakai</h2>
           </div>
           <div className="source-links">
-            <div><span>Dasar gaji {profession.navName}</span><b>referensi resmi</b></div>
+            <div><span>Dasar gaji {profession.navName}</span><b>{isCustom ? "input pengguna" : "referensi resmi"}</b></div>
             {methodologySources.slice(0, 4).map((source) => (
               <div key={source.url}><span>{source.label}</span><b>data terkurasi</b></div>
             ))}

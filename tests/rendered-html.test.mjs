@@ -30,6 +30,7 @@ test("server-renders the selection-first home page", async () => {
   assert.match(html, /Apa pekerjaanmu saat ini\?/);
   assert.match(html, /Langkah 1 dari 2/);
   assert.match(html, /Freelancer/);
+  assert.match(html, /Custom/);
   assert.match(html, /SBN \/ BI Bonds Yield/);
   assert.match(html, /USD \/ IDR/);
   assert.match(html, /Antam 1 gram/);
@@ -54,16 +55,34 @@ test("renders automatic freelance benchmark, PNG download, and real asset images
   assert.match(html, /Preview skenario akhir masa kerja/);
   assert.match(html, /Potensi tambahan dari investasi/);
   assert.doesNotMatch(html, /Daerah tempat tinggal dan bekerja/);
-  assert.match(html, /antam-10g\.png/);
-  assert.match(html, /avanza\.png/);
-  assert.match(html, /rumah-600-juta\.png/);
+  assert.match(html, /purchasing\/antam-10g-cutout\.png/);
+  assert.match(html, /purchasing\/avanza-cutout\.png/);
+  assert.match(html, /purchasing\/rumah-cutout\.png/);
+  assert.match(html, /purchasing\/ferrari-cutout\.png/);
   assert.match(html, /Toyota Avanza 1\.5 G CVT/);
-  assert.match(html, /purchase-progress/);
+  assert.match(html, /Ferrari/);
+  assert.match(html, /purchase-journey/);
+  assert.match(html, /estimasi gaji awal/);
   assert.match(html, /Tanpa investasi/);
   assert.match(html, /Dengan investasi/);
   assert.match(html, /Aktifkan mode gelap/);
   assert.match(html, /<header class="site-header">[\s\S]*?class="theme-toggle"/);
   assert.doesNotMatch(html, /<section class="calculator-results"[^>]*>[\s\S]*?class="theme-toggle"/);
+});
+
+test("renders the sixth custom profession with user-controlled career inputs", async () => {
+  const response = await request("/profesi/custom");
+  assert.equal(response.status, 200);
+
+  const html = await response.text();
+  assert.match(html, /Jejak Gaji\s*(?:<!-- -->)?\s*Custom/);
+  assert.match(html, /Atur jalur kerjamu/);
+  assert.match(html, /Penghasilan per bulan/);
+  assert.match(html, /Usia mulai bekerja/);
+  assert.match(html, /Target pensiun/);
+  assert.match(html, /Pembayaran per tahun/);
+  assert.match(html, /input pengguna/);
+  assert.doesNotMatch(html, /Benchmark profesi terisi otomatis/);
 });
 
 test("only the minimum-wage route asks for a working region", async () => {
