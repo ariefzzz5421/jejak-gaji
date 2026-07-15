@@ -34,6 +34,10 @@ test("server-renders the selection-first home page", async () => {
   assert.match(html, /Pilih usia manusia/);
   assert.match(html, /age-journey\/age-20\.png/);
   assert.match(html, /age-journey\/age-74\.png/);
+  assert.match(html, /age-journey\/female-age-20\.png/);
+  assert.match(html, /age-journey\/female-age-74\.png/);
+  assert.match(html, /Tampilkan karakter laki-laki/);
+  assert.match(html, /Tampilkan karakter perempuan/);
   assert.match(html, /Freelancer/);
   assert.match(html, /Custom/);
   assert.match(html, /SBN \/ BI Bonds Yield/);
@@ -57,6 +61,14 @@ test("renders automatic freelance benchmark, PNG download, and real asset images
   assert.match(html, /Benchmark otomatis/);
   assert.match(html, /Rp\s*1\.920\.000/);
   assert.match(html, /Download/);
+  assert.match(html, /5 desain kartu/);
+  assert.match(html, /Editorial/);
+  assert.match(html, /Split Signal/);
+  assert.match(html, /Orbit/);
+  assert.match(html, /Ledger/);
+  assert.match(html, /Neon Grid/);
+  assert.match(html, /PNG hanya memuat perbandingan investasi/);
+  assert.match(html, /Rp(?:<!-- -->)?\s*[\d,.]+(?:<!-- -->)?\s*(?:Juta|Milyar|Triliun)/);
   assert.match(html, /Preview skenario akhir masa kerja/);
   assert.match(html, /Potensi tambahan dari investasi/);
   assert.doesNotMatch(html, /Daerah tempat tinggal dan bekerja/);

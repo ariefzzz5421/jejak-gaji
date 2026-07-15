@@ -3,33 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { DownloadCardStudio } from "./DownloadCardStudio";
 import {
   cityWages,
   investments,
   referenceData,
   type Profession,
 } from "../data";
-
-const rupiah = new Intl.NumberFormat("id-ID", {
-  style: "currency",
-  currency: "IDR",
-  maximumFractionDigits: 0,
-});
-
-const compactRupiah = (value: number) => {
-  if (value >= 1_000_000_000_000) return `Rp${(value / 1_000_000_000_000).toFixed(2)} T`;
-  if (value >= 1_000_000_000) return `Rp${(value / 1_000_000_000).toFixed(2)} M`;
-  if (value >= 1_000_000) return `Rp${(value / 1_000_000).toFixed(1)} jt`;
-  return rupiah.format(value);
-};
-
-const loadCanvasImage = (src: string) =>
-  new Promise<HTMLImageElement>((resolve, reject) => {
-    const image = new window.Image();
-    image.onload = () => resolve(image);
-    image.onerror = reject;
-    image.src = src;
-  });
+import { compactRupiah, rupiah } from "../format";
 
 export function LifetimeCalculator({ profession }: { profession: Profession }) {
   const isMinimumWage = profession.slug === "upah-minimum";
@@ -181,129 +162,6 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
       height: 1024,
     },
   ];
-
-  const downloadSummary = async () => {
-    setIsDownloading(true);
-    try {
-      const canvas = document.createElement("canvas");
-      canvas.width = 1200;
-      canvas.height = 1500;
-      const context = canvas.getContext("2d");
-      if (!context) return;
-
-      context.fillStyle = "#f5f0e6";
-      context.fillRect(0, 0, canvas.width, canvas.height);
-      context.strokeStyle = "rgba(33,31,26,.07)";
-      context.lineWidth = 1;
-      for (let line = 0; line <= canvas.width; line += 60) {
-        context.beginPath();
-        context.moveTo(line, 0);
-        context.lineTo(line, canvas.height);
-        context.stroke();
-      }
-      for (let line = 0; line <= canvas.height; line += 60) {
-        context.beginPath();
-        context.moveTo(0, line);
-        context.lineTo(canvas.width, line);
-        context.stroke();
-      }
-
-      context.fillStyle = profession.accent;
-      context.fillRect(0, 0, canvas.width, 430);
-      const logo = await loadCanvasImage(profession.image);
-      context.save();
-      context.beginPath();
-      context.arc(125, 120, 65, 0, Math.PI * 2);
-      context.clip();
-      context.drawImage(logo, 60, 55, 130, 130);
-      context.restore();
-
-      context.fillStyle = "rgba(255,255,255,.72)";
-      context.font = "600 24px Segoe UI, Arial";
-      context.letterSpacing = "3px";
-      context.fillText("RINGKASAN JEJAK GAJI · 2026", 225, 105);
-      context.fillStyle = "#fffdf8";
-      context.font = "400 58px Georgia, serif";
-      context.fillText(profession.name, 225, 165);
-      context.font = "400 108px Georgia, serif";
-      context.fillText(compactRupiah(calculation.totalIncome), 70, 320);
-      context.font = "400 25px Segoe UI, Arial";
-      context.fillStyle = "rgba(255,255,255,.72)";
-      context.fillText("estimasi penghasilan kotor selama masa kerja", 75, 365);
-
-      const drawMetric = (label: string, value: string, x: number, y: number, width = 500) => {
-        context.fillStyle = "#6f6b61";
-        context.font = "600 20px Segoe UI, Arial";
-        context.fillText(label.toUpperCase(), x, y);
-        context.fillStyle = "#211f1a";
-        context.font = "400 38px Georgia, serif";
-        context.fillText(value, x, y + 52, width);
-      };
-
-      context.fillStyle = "#fffdf8";
-      context.fillRect(55, 475, 1090, 250);
-      drawMetric(isCustom ? "Penghasilan custom" : "Benchmark otomatis", rupiah.format(salary), 90, 525, 470);
-      drawMetric("Masa kerja", `${workYears} tahun`, 630, 525, 420);
-      drawMetric("Mulai kerja", `Usia ${startAge} · ${referenceData.currentYear}`, 90, 635, 470);
-      drawMetric(
-        profession.retirementIsTarget ? "Target pensiun" : "Pensiun sesuai BUP",
-        `Usia ${retirementAge} · ${retirementYear}`,
-        630,
-        635,
-        420,
-      );
-
-      context.fillStyle = profession.accent;
-      context.fillRect(55, 760, 1090, 300);
-      context.fillStyle = "rgba(255,255,255,.7)";
-      context.font = "600 20px Segoe UI, Arial";
-      context.fillText(`${savingRate}% PENGHASILAN DISISIHKAN`, 90, 815);
-      context.fillStyle = "#fffdf8";
-      context.font = "400 42px Georgia, serif";
-      context.fillText(`Tanpa investasi  ${compactRupiah(calculation.cashSaved)}`, 90, 885);
-      context.fillText(`Dengan ${instrument.name}  ${compactRupiah(calculation.invested)}`, 90, 955);
-      context.fillStyle = "rgba(255,255,255,.7)";
-      context.font = "400 23px Segoe UI, Arial";
-      context.fillText(`Yield neto ${instrument.netYield.toFixed(2)}% · potensi tambahan ${compactRupiah(calculation.growth)}`, 90, 1015);
-
-      context.fillStyle = "#211f1a";
-      context.font = "400 36px Georgia, serif";
-      context.fillText("Estimasi waktu membeli aset", 70, 1135);
-      assets.forEach((asset, index) => {
-        const x = 70 + index * 270;
-        const purchaseYears = asset.price / Math.max(salary * annualPayments, 1);
-        context.fillStyle = "#6f6b61";
-        context.font = "600 15px Segoe UI, Arial";
-        context.fillText(asset.name.toUpperCase(), x, 1195, 240);
-        context.fillStyle = profession.accent;
-        context.font = "400 34px Georgia, serif";
-        context.fillText(`${purchaseYears.toFixed(1)} th gaji`, x, 1250, 240);
-      });
-
-      context.fillStyle = "#6f6b61";
-      context.font = "400 20px Segoe UI, Arial";
-      context.fillText(benchmarkLabel, 70, 1350, 1050);
-      context.fillText(`Acuan ${profession.benchmarkYear} · UHH ${referenceData.lifeExpectancy} tahun · kenaikan gaji ${salaryGrowth}%/tahun`, 70, 1385, 1050);
-      context.font = "400 17px Segoe UI, Arial";
-      context.fillText("Simulasi edukasi, bukan janji pendapatan atau keuntungan investasi.", 70, 1440);
-      context.fillStyle = profession.accent;
-      context.font = "700 20px Segoe UI, Arial";
-      context.fillText("JEJAK GAJI", 965, 1440);
-
-      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
-      if (!blob) return;
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = `jejak-gaji-${profession.slug}-2026.png`;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      URL.revokeObjectURL(url);
-    } finally {
-      setIsDownloading(false);
-    }
-  };
 
   return (
     <div className="calculator-shell">
@@ -511,16 +369,17 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
           <div><span>Masa setelah pensiun</span><strong>{postRetirementYears.toFixed(1)} tahun</strong></div>
         </div>
 
-        <button
-          className="download-summary"
-          type="button"
-          onClick={downloadSummary}
-          disabled={isDownloading}
-          aria-label="Download ringkasan PNG"
-        >
-          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 20h14" /></svg>
-          {isDownloading ? "Menyiapkan..." : "Download"}
-        </button>
+        <DownloadCardStudio
+          accent={profession.accent}
+          cashSaved={calculation.cashSaved}
+          invested={calculation.invested}
+          instrumentName={instrument.name}
+          isDownloading={isDownloading}
+          onDownloadingChange={setIsDownloading}
+          professionSlug={profession.slug}
+          savingRate={savingRate}
+          workYears={workYears}
+        />
       </section>
 
       <section className="investment-panel full-span">
@@ -616,9 +475,15 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
                     />
                   </div>
                   <div className="purchase-asset-copy">
-                    <p>{asset.name}</p>
+                    <div className="purchase-asset-title">
+                      <span className="purchase-asset-icon" aria-hidden="true">
+                        <Image src={asset.image} alt="" width={64} height={64} unoptimized />
+                      </span>
+                      <p>{asset.name}</p>
+                    </div>
+                    <strong className="purchase-price-value">{compactRupiah(asset.price)}</strong>
                     <div className="price-input-row">
-                      <span>Rp</span>
+                      <span>Ubah Rp</span>
                       <input
                         aria-label={`Harga ${asset.name}`}
                         type="number"
