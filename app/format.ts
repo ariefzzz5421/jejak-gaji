@@ -4,6 +4,11 @@ export const rupiah = new Intl.NumberFormat("id-ID", {
   maximumFractionDigits: 0,
 });
 
+export const percentage = new Intl.NumberFormat("id-ID", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
 const compactNumber = new Intl.NumberFormat("id-ID", {
   minimumFractionDigits: 0,
   maximumFractionDigits: 2,

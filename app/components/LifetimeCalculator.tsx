@@ -10,7 +10,7 @@ import {
   referenceData,
   type Profession,
 } from "../data";
-import { compactRupiah, rupiah } from "../format";
+import { compactRupiah, percentage, rupiah } from "../format";
 
 export function LifetimeCalculator({ profession }: { profession: Profession }) {
   const isMinimumWage = profession.slug === "upah-minimum";
@@ -24,8 +24,7 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
   const [customRetirementAge, setCustomRetirementAge] = useState(profession.retirementAge);
   const [customAnnualPayments, setCustomAnnualPayments] = useState(profession.annualPayments);
   const [salaryGrowth, setSalaryGrowth] = useState(3);
-  const [savingRate, setSavingRate] = useState(15);
-  const [instrumentId, setInstrumentId] = useState<keyof typeof investments>("sbn");
+  const [savingRate, setSavingRate] = useState(30);
   const [isDownloading, setIsDownloading] = useState(false);
   const [assetPrices, setAssetPrices] = useState({
     gold: referenceData.gold10g,
@@ -56,7 +55,7 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
   }, []);
 
   const city = cityWages.find((item) => item.id === cityId) ?? cityWages[0];
-  const instrument = investments[instrumentId];
+  const instrument = investments.sbn;
   const salaryOption = profession.salaryOptions?.find((item) => item.id === salaryOptionId);
   const startAge = isCustom ? customStartAge : salaryOption?.startAge ?? profession.startAge;
   const retirementAge = isCustom
@@ -100,7 +99,8 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
       cashSaved,
       invested,
       growth: invested - cashSaved,
-      monthlyEquivalent,
+      firstMonthlySaving: salary * (savingRate / 100),
+      firstYearSaving: salary * annualPayments * (savingRate / 100),
     };
   }, [annualPayments, instrument.netYield, salary, salaryGrowth, savingRate, workYears]);
 
@@ -299,9 +299,19 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
               <div className="label-row"><span>Kenaikan gaji</span><strong>{salaryGrowth}% / th</strong></div>
               <input aria-label="Kenaikan gaji tahunan" type="range" min={0} max={10} step={0.5} value={salaryGrowth} onChange={(event) => setSalaryGrowth(Number(event.target.value))} />
             </div>
-            <div className="field-label">
+            <div className="field-label saving-rate-field">
               <div className="label-row"><span>Disisihkan</span><strong>{savingRate}%</strong></div>
               <input aria-label="Persentase penghasilan yang disisihkan" type="range" min={0} max={40} step={1} value={savingRate} onChange={(event) => setSavingRate(Number(event.target.value))} />
+              <div className="saving-live-preview" aria-live="polite">
+                <div><span>Dari gaji bulanan awal</span><strong>{rupiah.format(calculation.firstMonthlySaving)}</strong></div>
+                <div><span>Setoran tahun pertama</span><strong>{compactRupiah(calculation.firstYearSaving)}</strong></div>
+                <div><span>Tanpa investasi sampai pensiun</span><strong>{compactRupiah(calculation.cashSaved)}</strong></div>
+                <div><span>Jika rutin di {instrument.short}</span><strong>{compactRupiah(calculation.invested)}</strong></div>
+                <p>
+                  Dari estimasi total penghasilan <b>{compactRupiah(calculation.totalIncome)}</b>, porsi {savingRate}% setara <b>{compactRupiah(calculation.cashSaved)}</b> sebelum imbal hasil.
+                </p>
+              </div>
+              <small className="saving-rate-note">Simulasi dimulai dari 30%. Geser persentase untuk melihat nominalnya berubah langsung.</small>
             </div>
           </div>
         </div>
@@ -320,7 +330,7 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
 
         <div
           className="result-scenario-preview"
-          key={`${instrumentId}-${salary}-${salaryGrowth}-${savingRate}-${workYears}`}
+          key={`${salary}-${salaryGrowth}-${savingRate}-${workYears}`}
         >
           <article className="result-scenario-card">
             <div className="result-scenario-card-head"><b>01</b><span>Tanpa investasi</span></div>
@@ -333,7 +343,7 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
           <article className="result-scenario-card invested">
             <div className="result-scenario-card-head"><b>02</b><span>Dengan {instrument.name}</span></div>
             <strong>{compactRupiah(calculation.invested)}</strong>
-            <small>Yield neto {instrument.netYield.toFixed(2)}% per tahun</small>
+            <small>Yield neto {percentage.format(instrument.netYield)}% per tahun</small>
             <div className="result-mini-bars" aria-hidden="true"><span /><span /><span /><span /><span /><span /></div>
             <i aria-hidden="true"><b style={{ width: calculation.invested > 0 ? "100%" : "0%" }} /></i>
           </article>
@@ -374,10 +384,19 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
           cashSaved={calculation.cashSaved}
           invested={calculation.invested}
           instrumentName={instrument.name}
+          instrumentShort={instrument.short}
+          instrumentSource={instrument.sourceLabel}
+          netYield={instrument.netYield}
           isDownloading={isDownloading}
           onDownloadingChange={setIsDownloading}
+          annualPayments={annualPayments}
+          benchmarkLabel={benchmarkLabel}
+          benchmarkYear={isMinimumWage ? 2026 : profession.benchmarkYear}
+          monthlySalary={salary}
+          professionName={profession.name}
           professionSlug={profession.slug}
           savingRate={savingRate}
+          salaryGrowth={salaryGrowth}
           workYears={workYears}
         />
       </section>
@@ -387,16 +406,18 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
           <span className="step-number">02</span>
           <div>
             <p className="section-kicker">Uang yang sama, hasil berbeda</p>
-            <h2>Menabung saja vs investasi sangat konservatif</h2>
+            <h2>Disimpan saja vs Obligasi Negara.</h2>
           </div>
         </div>
 
-        <div className="instrument-tabs" role="group" aria-label="Pilih instrumen investasi">
-          {(Object.keys(investments) as Array<keyof typeof investments>).map((key) => (
-            <button key={key} type="button" className={instrumentId === key ? "active" : ""} onClick={() => setInstrumentId(key)}>
-              <strong>{investments[key].name}</strong><span>{investments[key].short}</span>
-            </button>
-          ))}
+        <div className="bond-assumption" aria-label="Instrumen investasi default">
+          <span className="bond-assumption-mark">ID</span>
+          <div>
+            <small>Instrumen default · Obligasi Negara</small>
+            <strong>{instrument.short} · kupon tetap {percentage.format(instrument.grossYield)}% bruto</strong>
+            <p>Simulasi memakai yield neto {percentage.format(instrument.netYield)}% setelah PPh final 10%.</p>
+          </div>
+          <span className="bond-source-label">Sumber: DJPPR Kementerian Keuangan</span>
         </div>
 
         <div className="scenario-grid">
@@ -411,7 +432,7 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
           </article>
           <div className="versus-badge">VS</div>
           <article className="scenario-card invest-card">
-            <div className="scenario-icon">+{instrument.netYield.toFixed(2)}%</div>
+            <div className="scenario-icon">+{percentage.format(instrument.netYield)}%</div>
             <p>Dengan investasi {instrument.name}</p>
             <strong>{compactRupiah(calculation.invested)}</strong>
             <div className="scenario-result-bar" aria-hidden="true"><span style={{ width: calculation.invested > 0 ? "100%" : "0%" }} /></div>
@@ -421,13 +442,13 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
             <p>Potensi tambahan dari compounding</p>
             <strong>+{compactRupiah(calculation.growth)}</strong>
             <div className="yield-row">
-              <span>Yield neto <b>{instrument.netYield.toFixed(2)}%</b></span>
+              <span>Yield neto <b>{percentage.format(instrument.netYield)}%</b></span>
               <span>Inflasi <b>{referenceData.inflation}%</b></span>
-              <span>Real yield ≈ <b>{realYield.toFixed(2)}%</b></span>
+              <span>Real yield ≈ <b>{percentage.format(realYield)}%</b></span>
             </div>
           </article>
         </div>
-        <p className="fine-print">⚠️ Risiko: {instrument.note} SBN memiliki risiko harga jika dijual sebelum jatuh tempo; RDPU juga bukan deposito dan hasilnya tidak dijamin. Ini simulasi edukasi, bukan janji keuntungan.</p>
+        <p className="fine-print">⚠️ Risiko: {instrument.note} ORI memiliki risiko harga jika dijual sebelum jatuh tempo. Ini simulasi edukasi, bukan janji keuntungan.</p>
       </section>
 
       <section className="purchase-panel full-span">
@@ -442,6 +463,7 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
         <div className="purchase-journey-list">
           {assets.map((asset) => {
             const years = asset.price / Math.max(salary * annualPayments, 1);
+            const salaryMultiple = asset.price / Math.max(salary, 1);
             const totalUnits = calculation.totalIncome / Math.max(asset.price, 1);
             const timeLabel = years < 1 ? `${(years * 12).toFixed(1)} bulan` : `${years.toFixed(1)} tahun`;
             return (
@@ -449,6 +471,7 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
                 <div className="purchase-total-block">
                   <span>Total gaji seumur kerja</span>
                   <strong>{compactRupiah(calculation.totalIncome)}</strong>
+                  <b className="purchase-salary-multiple">Harga aset = {salaryMultiple.toFixed(1)}× gaji bulanan awal</b>
                   <small>{workYears} tahun kerja · {annualPayments}× pembayaran/tahun</small>
                 </div>
 

@@ -288,21 +288,13 @@ export const cityWages: CityWage[] = [
 export const investments = {
   sbn: {
     id: "sbn",
-    name: "SBN Ritel",
-    short: "SBR014T4",
-    grossYield: 6.35,
-    netYield: 5.715,
-    note: "Kupon minimum 6,35% bruto; simulasi memakai 5,715% setelah pajak kupon 10%.",
-    source: "https://djppr.kemenkeu.go.id/savingsbondritel",
-  },
-  rdpu: {
-    id: "rdpu",
-    name: "RD Pasar Uang",
-    short: "Asumsi konservatif",
-    grossYield: 5.25,
-    netYield: 5.25,
-    note: "Asumsi 5,25% per tahun, di bawah BI-Rate 5,75%. Hasil produk nyata berubah dan tidak dijamin.",
-    source: "https://www.bi.go.id/id/statistik/indikator/Default.aspx",
+    name: "Obligasi Negara Ritel",
+    short: "ORI030T6",
+    grossYield: 7,
+    netYield: 6.3,
+    note: "ORI030T6 memberi kupon tetap 7,00% bruto; simulasi memakai 6,30% setelah PPh final kupon 10%.",
+    source: "https://media.kemenkeu.go.id/getmedia/e39930d9-e507-41bf-a790-90a053601bd2/Memorandum-Informasi-ORI030T6-SDGBondRitel.pdf",
+    sourceLabel: "DJPPR Kementerian Keuangan · Memorandum ORI030T6",
   },
 } as const;
 

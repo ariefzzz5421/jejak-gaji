@@ -1,29 +1,45 @@
 "use client";
 
 import { useState } from "react";
-import { compactRupiah } from "../format";
+import { compactRupiah, percentage, rupiah } from "../format";
 
 const designs = [
-  { id: "editorial", name: "Editorial", number: "01" },
-  { id: "split", name: "Split Signal", number: "02" },
-  { id: "orbit", name: "Orbit", number: "03" },
-  { id: "ledger", name: "Ledger", number: "04" },
-  { id: "neon", name: "Neon Grid", number: "05" },
+  { id: "executive", name: "Executive", number: "01" },
+  { id: "bond", name: "Bond Certificate", number: "02" },
+  { id: "midnight", name: "Midnight", number: "03" },
 ] as const;
 
 type DesignId = (typeof designs)[number]["id"];
 
 interface DownloadCardStudioProps {
   accent: string;
+  annualPayments: number;
+  benchmarkLabel: string;
+  benchmarkYear: number;
   cashSaved: number;
   invested: number;
   instrumentName: string;
+  instrumentShort: string;
+  instrumentSource: string;
   isDownloading: boolean;
+  monthlySalary: number;
+  netYield: number;
   onDownloadingChange: (value: boolean) => void;
+  professionName: string;
   professionSlug: string;
+  salaryGrowth: number;
   savingRate: number;
   workYears: number;
 }
+
+type CardPalette = {
+  accent: string;
+  background: string;
+  ink: string;
+  line: string;
+  muted: string;
+  surface: string;
+};
 
 const roundedRect = (
   context: CanvasRenderingContext2D,
@@ -37,38 +53,48 @@ const roundedRect = (
   context.roundRect(x, y, width, height, radius);
 };
 
-const drawWrappedValue = (
+const drawFitText = (
   context: CanvasRenderingContext2D,
   value: string,
   x: number,
   y: number,
   maxWidth: number,
+  maxSize: number,
+  minSize: number,
   color: string,
-  align: CanvasTextAlign = "left",
+  family = "Georgia, serif",
+  weight = 700,
 ) => {
-  context.textAlign = align;
   context.fillStyle = color;
-  let size = 72;
+  let size = maxSize;
   do {
-    context.font = `700 ${size}px Georgia, serif`;
+    context.font = `${weight} ${size}px ${family}`;
     size -= 2;
-  } while (context.measureText(value).width > maxWidth && size > 38);
+  } while (context.measureText(value).width > maxWidth && size > minSize);
   context.fillText(value, x, y);
-  context.textAlign = "left";
 };
 
 export function DownloadCardStudio({
   accent,
+  annualPayments,
+  benchmarkLabel,
+  benchmarkYear,
   cashSaved,
   invested,
   instrumentName,
+  instrumentShort,
+  instrumentSource,
   isDownloading,
+  monthlySalary,
+  netYield,
   onDownloadingChange,
+  professionName,
   professionSlug,
+  salaryGrowth,
   savingRate,
   workYears,
 }: DownloadCardStudioProps) {
-  const [designId, setDesignId] = useState<DesignId>("editorial");
+  const [designId, setDesignId] = useState<DesignId>("executive");
   const cashLabel = compactRupiah(cashSaved);
   const investedLabel = compactRupiah(invested);
   const growthLabel = compactRupiah(Math.max(invested - cashSaved, 0));
@@ -78,119 +104,142 @@ export function DownloadCardStudio({
     try {
       const canvas = document.createElement("canvas");
       canvas.width = 1200;
-      canvas.height = 1200;
+      canvas.height = 1400;
       const context = canvas.getContext("2d");
       if (!context) return;
 
-      const dark = "#101713";
-      const cream = "#f6efe2";
-      const orange = "#ea6b35";
-      const mint = "#8dd9bb";
-
-      const drawHeader = (foreground: string, secondary: string) => {
-        context.fillStyle = foreground;
-        context.font = "800 25px Segoe UI, Arial";
-        context.letterSpacing = "4px";
-        context.fillText("INVESTASI VS TIDAK BERINVESTASI", 72, 88);
-        context.fillStyle = secondary;
-        context.font = "500 20px Segoe UI, Arial";
-        context.letterSpacing = "1px";
-        context.fillText(`${savingRate}% penghasilan · ${workYears} tahun`, 72, 125);
+      const palettes: Record<DesignId, CardPalette> = {
+        executive: {
+          background: "#f4efe4",
+          surface: "#fffaf1",
+          ink: "#10251c",
+          muted: "#6f7168",
+          accent,
+          line: "rgba(16,37,28,.16)",
+        },
+        bond: {
+          background: "#0b2239",
+          surface: "#102e49",
+          ink: "#f7edda",
+          muted: "#b6c1c8",
+          accent: "#d5ad62",
+          line: "rgba(213,173,98,.34)",
+        },
+        midnight: {
+          background: "#07100d",
+          surface: "#101a17",
+          ink: "#eef5ec",
+          muted: "#93a39c",
+          accent: "#72e4bf",
+          line: "rgba(114,228,191,.24)",
+        },
       };
+      const palette = palettes[designId];
 
-      const drawFooter = (foreground: string, secondary: string) => {
-        context.fillStyle = secondary;
-        context.font = "500 17px Segoe UI, Arial";
-        context.letterSpacing = "1px";
-        context.fillText("SIMULASI EDUKASI · BUKAN JANJI KEUNTUNGAN", 72, 1128);
-        context.fillStyle = foreground;
-        context.font = "800 20px Segoe UI, Arial";
-        context.textAlign = "right";
-        context.fillText("JEJAK GAJI · 2026", 1128, 1128);
-        context.textAlign = "left";
-      };
+      context.fillStyle = palette.background;
+      context.fillRect(0, 0, canvas.width, canvas.height);
 
-      if (designId === "editorial") {
-        context.fillStyle = cream;
-        context.fillRect(0, 0, 1200, 1200);
-        context.fillStyle = dark;
-        context.fillRect(0, 0, 1200, 190);
-        drawHeader(cream, "rgba(246,239,226,.65)");
-        context.strokeStyle = "rgba(16,23,19,.13)";
-        for (let x = 0; x <= 1200; x += 60) {
-          context.beginPath(); context.moveTo(x, 190); context.lineTo(x, 1200); context.stroke();
-        }
-        for (let y = 190; y <= 1200; y += 60) {
-          context.beginPath(); context.moveTo(0, y); context.lineTo(1200, y); context.stroke();
-        }
-        context.fillStyle = "#fffdf8";
-        roundedRect(context, 70, 265, 1060, 300, 30); context.fill();
-        context.fillStyle = accent;
-        roundedRect(context, 70, 600, 1060, 350, 30); context.fill();
-        context.fillStyle = "#6c695f"; context.font = "700 22px Segoe UI, Arial"; context.fillText("TANPA INVESTASI", 115, 335);
-        drawWrappedValue(context, cashLabel, 115, 465, 920, dark);
-        context.fillStyle = "rgba(255,255,255,.72)"; context.font = "700 22px Segoe UI, Arial"; context.fillText(`DENGAN ${instrumentName.toUpperCase()}`, 115, 675);
-        drawWrappedValue(context, investedLabel, 115, 810, 920, "#fffdf8");
-        context.fillStyle = "rgba(255,255,255,.72)"; context.font = "500 22px Segoe UI, Arial"; context.fillText(`Potensi tambahan ${growthLabel}`, 115, 885);
-        drawFooter(dark, "#706b61");
-      } else if (designId === "split") {
-        context.fillStyle = cream; context.fillRect(0, 0, 1200, 570);
-        context.fillStyle = orange; context.fillRect(0, 570, 1200, 60);
-        context.fillStyle = dark; context.fillRect(0, 630, 1200, 570);
-        context.fillStyle = dark; context.font = "800 24px Segoe UI, Arial"; context.fillText("TANPA INVESTASI", 70, 90);
-        context.fillStyle = "#6c695f"; context.font = "500 19px Segoe UI, Arial"; context.fillText("Hanya disimpan", 70, 140);
-        drawWrappedValue(context, cashLabel, 70, 395, 1060, dark);
-        context.fillStyle = cream; context.font = "800 24px Segoe UI, Arial"; context.fillText(`DENGAN ${instrumentName.toUpperCase()}`, 70, 720);
-        context.fillStyle = "rgba(246,239,226,.62)"; context.font = "500 19px Segoe UI, Arial"; context.fillText("Setoran dan imbal hasil", 70, 770);
-        drawWrappedValue(context, investedLabel, 70, 1020, 1060, cream);
-        context.fillStyle = cream; context.font = "800 20px Segoe UI, Arial"; context.textAlign = "right"; context.fillText("JEJAK GAJI · 2026", 1130, 1145); context.textAlign = "left";
-        context.fillStyle = dark; context.font = "800 24px Segoe UI, Arial"; context.textAlign = "center"; context.fillText("VS", 600, 608); context.textAlign = "left";
-      } else if (designId === "orbit") {
-        context.fillStyle = "#e6ddd0"; context.fillRect(0, 0, 1200, 1200);
-        context.strokeStyle = "rgba(16,23,19,.12)"; context.lineWidth = 2;
-        [190, 290, 390, 490].forEach((radius) => { context.beginPath(); context.arc(600, 620, radius, 0, Math.PI * 2); context.stroke(); });
-        context.fillStyle = dark; roundedRect(context, 330, 390, 540, 460, 270); context.fill();
-        context.fillStyle = orange; context.beginPath(); context.arc(600, 620, 210, -Math.PI / 2, Math.PI * .22); context.lineTo(600, 620); context.fill();
-        context.fillStyle = cream; context.beginPath(); context.arc(600, 620, 145, 0, Math.PI * 2); context.fill();
-        context.fillStyle = dark; context.font = "800 22px Segoe UI, Arial"; context.textAlign = "center"; context.fillText("INVESTASI VS", 600, 585); context.fillText("TIDAK BERINVESTASI", 600, 620); context.textAlign = "left";
-        context.fillStyle = dark; context.font = "700 20px Segoe UI, Arial"; context.fillText("TANPA INVESTASI", 72, 128);
-        drawWrappedValue(context, cashLabel, 72, 215, 470, dark);
-        context.fillStyle = accent; context.font = "700 20px Segoe UI, Arial"; context.textAlign = "right"; context.fillText(`DENGAN ${instrumentName.toUpperCase()}`, 1128, 995);
-        drawWrappedValue(context, investedLabel, 1128, 1080, 500, accent, "right");
-        drawFooter(dark, "#706b61");
-      } else if (designId === "ledger") {
-        context.fillStyle = "#f8f5ec"; context.fillRect(0, 0, 1200, 1200);
-        context.strokeStyle = "rgba(28,58,46,.13)";
-        for (let y = 70; y < 1200; y += 48) { context.beginPath(); context.moveTo(0, y); context.lineTo(1200, y); context.stroke(); }
-        context.fillStyle = accent; context.fillRect(54, 0, 12, 1200);
-        drawHeader(dark, "#706b61");
-        context.fillStyle = dark; context.font = "800 120px Georgia, serif"; context.fillText("01", 72, 420);
-        context.font = "700 22px Segoe UI, Arial"; context.fillText("TANPA INVESTASI", 280, 345);
-        drawWrappedValue(context, cashLabel, 280, 435, 820, dark);
-        context.fillStyle = accent; context.font = "800 120px Georgia, serif"; context.fillText("02", 72, 755);
-        context.font = "700 22px Segoe UI, Arial"; context.fillText(`DENGAN ${instrumentName.toUpperCase()}`, 280, 680);
-        drawWrappedValue(context, investedLabel, 280, 770, 820, accent);
-        context.fillStyle = dark; roundedRect(context, 72, 900, 1056, 118, 14); context.fill();
-        context.fillStyle = cream; context.font = "700 23px Segoe UI, Arial"; context.fillText(`SELISIH  +${growthLabel}`, 112, 972);
-        drawFooter(dark, "#706b61");
+      if (designId === "executive") {
+        context.fillStyle = palette.ink;
+        context.fillRect(0, 0, 1200, 28);
+        context.fillStyle = palette.accent;
+        context.fillRect(72, 0, 260, 28);
+      } else if (designId === "bond") {
+        context.strokeStyle = palette.line;
+        context.lineWidth = 2;
+        context.strokeRect(35, 35, 1130, 1330);
+        context.strokeRect(50, 50, 1100, 1300);
+        context.beginPath();
+        context.arc(1050, 180, 170, 0, Math.PI * 2);
+        context.stroke();
       } else {
-        context.fillStyle = "#07100d"; context.fillRect(0, 0, 1200, 1200);
-        context.strokeStyle = "rgba(91,244,212,.1)";
-        for (let p = 0; p <= 1200; p += 60) {
-          context.beginPath(); context.moveTo(p, 0); context.lineTo(p, 1200); context.stroke();
-          context.beginPath(); context.moveTo(0, p); context.lineTo(1200, p); context.stroke();
+        context.strokeStyle = "rgba(114,228,191,.07)";
+        for (let position = 0; position <= 1400; position += 56) {
+          context.beginPath(); context.moveTo(position, 0); context.lineTo(position, 1400); context.stroke();
+          context.beginPath(); context.moveTo(0, position); context.lineTo(1200, position); context.stroke();
         }
-        context.shadowBlur = 28; context.shadowColor = "rgba(91,244,212,.32)";
-        context.strokeStyle = mint; context.lineWidth = 3; roundedRect(context, 68, 195, 1064, 330, 28); context.stroke();
-        context.shadowColor = "rgba(234,107,53,.35)"; context.strokeStyle = orange; roundedRect(context, 68, 570, 1064, 370, 28); context.stroke();
-        context.shadowBlur = 0; drawHeader("#f3f4ec", "rgba(243,244,236,.55)");
-        context.fillStyle = mint; context.font = "700 22px Segoe UI, Arial"; context.fillText("TANPA INVESTASI", 115, 270);
-        drawWrappedValue(context, cashLabel, 115, 410, 920, "#f3f4ec");
-        context.fillStyle = orange; context.font = "700 22px Segoe UI, Arial"; context.fillText(`DENGAN ${instrumentName.toUpperCase()}`, 115, 650);
-        drawWrappedValue(context, investedLabel, 115, 795, 920, "#f3f4ec");
-        context.fillStyle = "rgba(243,244,236,.65)"; context.font = "500 22px Segoe UI, Arial"; context.fillText(`+${growthLabel} dari compounding`, 115, 865);
-        drawFooter("#f3f4ec", "rgba(243,244,236,.5)");
+        context.fillStyle = "#eb6a36";
+        context.fillRect(72, 122, 12, 1160);
       }
+
+      context.fillStyle = palette.accent;
+      context.font = "800 20px Segoe UI, Arial";
+      context.letterSpacing = "4px";
+      context.fillText("INVESTASI VS TIDAK BERINVESTASI", 84, 105);
+      context.letterSpacing = "0px";
+
+      drawFitText(context, professionName, 84, 190, 900, 62, 38, palette.ink);
+      context.fillStyle = palette.muted;
+      context.font = "600 21px Segoe UI, Arial";
+      context.fillText(`${benchmarkLabel} · acuan ${benchmarkYear}`, 84, 235);
+      context.font = "500 20px Segoe UI, Arial";
+      context.fillText(`Penghasilan awal ${rupiah.format(monthlySalary)} per bulan`, 84, 275);
+
+      context.fillStyle = palette.surface;
+      roundedRect(context, 72, 325, 1056, 175, 24);
+      context.fill();
+      context.strokeStyle = palette.line;
+      context.stroke();
+
+      const assumptions = [
+        ["DISISIHKAN", `${savingRate}%`],
+        ["KENAIKAN GAJI", `${salaryGrowth}% / tahun`],
+        ["PEMBAYARAN", `${annualPayments}× / tahun`],
+        ["MASA KERJA", `${workYears} tahun`],
+      ];
+      assumptions.forEach(([label, value], index) => {
+        const x = 105 + index * 258;
+        context.fillStyle = palette.muted;
+        context.font = "700 15px Segoe UI, Arial";
+        context.fillText(label, x, 385);
+        context.fillStyle = palette.ink;
+        context.font = "700 26px Georgia, serif";
+        context.fillText(value, x, 440);
+      });
+
+      const drawScenario = (x: number, label: string, value: string, highlighted: boolean) => {
+        context.fillStyle = highlighted ? palette.accent : palette.surface;
+        roundedRect(context, x, 550, 505, 360, 28);
+        context.fill();
+        context.strokeStyle = palette.line;
+        context.stroke();
+        const foreground = highlighted && designId === "executive" ? "#fffaf1" : palette.ink;
+        const secondary = highlighted && designId === "executive" ? "rgba(255,250,241,.72)" : palette.muted;
+        context.fillStyle = secondary;
+        context.font = "800 18px Segoe UI, Arial";
+        context.fillText(label, x + 38, 625);
+        drawFitText(context, value, x + 38, 755, 430, 55, 32, foreground);
+        context.fillStyle = secondary;
+        context.font = "500 18px Segoe UI, Arial";
+        context.fillText(highlighted ? `Yield neto ${percentage.format(netYield)}% / tahun` : "Setoran tanpa imbal hasil", x + 38, 825);
+        context.fillStyle = highlighted ? foreground : palette.accent;
+        context.fillRect(x + 38, 860, highlighted ? 425 : 245, 7);
+      };
+
+      drawScenario(72, "TANPA INVESTASI", cashLabel, false);
+      drawScenario(623, `DENGAN ${instrumentShort}`, investedLabel, true);
+
+      context.fillStyle = palette.surface;
+      roundedRect(context, 72, 955, 1056, 160, 24);
+      context.fill();
+      context.strokeStyle = palette.line;
+      context.stroke();
+      context.fillStyle = palette.muted;
+      context.font = "700 17px Segoe UI, Arial";
+      context.fillText("POTENSI TAMBAHAN DARI COMPOUNDING", 108, 1015);
+      drawFitText(context, `+${growthLabel}`, 108, 1080, 900, 48, 30, palette.accent);
+
+      context.fillStyle = palette.muted;
+      context.font = "600 17px Segoe UI, Arial";
+      context.fillText(`${instrumentName} · ${instrumentShort}`, 84, 1210);
+      context.font = "500 15px Segoe UI, Arial";
+      context.fillText(`Sumber instrumen: ${instrumentSource}`, 84, 1245);
+      context.fillText("Simulasi edukasi berdasarkan asumsi pengguna. Bukan janji keuntungan.", 84, 1280);
+      context.fillStyle = palette.ink;
+      context.font = "800 18px Segoe UI, Arial";
+      context.textAlign = "right";
+      context.fillText("JEJAK GAJI · 2026", 1116, 1325);
+      context.textAlign = "left";
 
       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
       if (!blob) return;
@@ -211,10 +260,10 @@ export function DownloadCardStudio({
     <div className="download-card-studio">
       <div className="download-studio-heading">
         <div>
-          <span>5 desain kartu</span>
-          <strong>Pilih preview sebelum download</strong>
+          <span>3 tema profesional</span>
+          <strong>Pilih desain ringkasan</strong>
         </div>
-        <small>PNG hanya memuat perbandingan investasi.</small>
+        <small>Kartu memuat profesi, asumsi, perbandingan, dan sumber Obligasi Negara.</small>
       </div>
 
       <div className="download-design-grid" role="radiogroup" aria-label="Pilih desain kartu download">
@@ -229,11 +278,11 @@ export function DownloadCardStudio({
           >
             <span className="design-card-mini">
               <i>{design.number}</i>
-              <small>Tanpa investasi</small>
-              <b>{cashLabel}</b>
-              <em>VS</em>
-              <small>Dengan investasi</small>
-              <b>{investedLabel}</b>
+              <small>{professionName}</small>
+              <strong>Investasi vs Tidak Berinvestasi</strong>
+              <em>{savingRate}% disisihkan · {workYears} tahun</em>
+              <span className="design-mini-values"><b>{cashLabel}</b><b>{investedLabel}</b></span>
+              <u>{instrumentShort} · DJPPR Kemenkeu</u>
             </span>
             <strong>{design.name}</strong>
           </button>
@@ -242,7 +291,7 @@ export function DownloadCardStudio({
 
       <button className="download-summary" type="button" onClick={downloadCard} disabled={isDownloading}>
         <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 20h14" /></svg>
-        {isDownloading ? "Menyiapkan PNG..." : `Download desain ${designs.find((design) => design.id === designId)?.name}`}
+        {isDownloading ? "Menyiapkan PNG..." : `Download ${designs.find((design) => design.id === designId)?.name}`}
       </button>
     </div>
   );
