@@ -393,10 +393,13 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
           benchmarkLabel={benchmarkLabel}
           benchmarkYear={isMinimumWage ? 2026 : profession.benchmarkYear}
           monthlySalary={salary}
+          professionImage={profession.image}
           professionName={profession.name}
           professionSlug={profession.slug}
+          retirementAge={retirementAge}
           savingRate={savingRate}
           salaryGrowth={salaryGrowth}
+          startAge={startAge}
           workYears={workYears}
         />
       </section>
@@ -456,7 +459,7 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
           <span className="step-number">03</span>
           <div>
             <p className="section-kicker">Daya beli hari ini</p>
-            <h2>Dari total gaji menuju aset impian.</h2>
+            <h2>Berapa kali gaji bulanan untuk membelinya?</h2>
           </div>
         </div>
 
@@ -469,19 +472,21 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
             return (
               <article className="purchase-journey" key={asset.id}>
                 <div className="purchase-total-block">
-                  <span>Total gaji seumur kerja</span>
-                  <strong>{compactRupiah(calculation.totalIncome)}</strong>
-                  <b className="purchase-salary-multiple">Harga aset = {salaryMultiple.toFixed(1)}× gaji bulanan awal</b>
-                  <small>{workYears} tahun kerja · {annualPayments}× pembayaran/tahun</small>
+                  <span>Gaji bulanan awal</span>
+                  <strong>{compactRupiah(salary)}</strong>
+                  <div className="purchase-lifetime-note">
+                    <span>Estimasi penghasilan seumur kerja</span>
+                    <b>{compactRupiah(calculation.totalIncome)}</b>
+                  </div>
                 </div>
 
                 <div className="purchase-arrow-block">
-                  <svg aria-hidden="true" viewBox="0 0 180 62">
-                    <path d="M8 42C48 10 111 10 158 35" />
-                    <path d="m145 18 18 18-24 7" />
-                  </svg>
-                  <strong>{timeLabel}</strong>
-                  <span>estimasi gaji awal</span>
+                  <div className="purchase-arrow-motion" aria-hidden="true">
+                    <span /><i /><i /><i />
+                  </div>
+                  <strong>{salaryMultiple.toFixed(1)}×</strong>
+                  <span>gaji bulanan menuju aset</span>
+                  <small>≈ {timeLabel} gaji kotor</small>
                 </div>
 
                 <div className="purchase-asset-block">

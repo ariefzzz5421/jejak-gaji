@@ -64,8 +64,13 @@ test("renders automatic freelance benchmark, PNG download, and real asset images
   assert.match(html, /3 tema profesional/);
   assert.match(html, /Executive/);
   assert.match(html, /Bond Certificate/);
-  assert.match(html, /Midnight/);
+  assert.match(html, /Cobalt Report/);
+  assert.doesNotMatch(html, /Midnight/);
   assert.match(html, /Investasi vs Tidak Berinvestasi/);
+  assert.match(html, /Ringkasan asumsi/);
+  assert.match(html, /Perjalanan karier/);
+  assert.match(html, /tahun bekerja/);
+  assert.match(html, /design-profession-logo/);
   assert.match(html, /DJPPR Kemenkeu/);
   assert.match(html, /ORI030T6/);
   assert.match(html, /Simulasi dimulai dari 30%/);
@@ -84,9 +89,10 @@ test("renders automatic freelance benchmark, PNG download, and real asset images
   assert.match(html, /Toyota Avanza 1\.5 G CVT/);
   assert.match(html, /Ferrari/);
   assert.match(html, /purchase-journey/);
-  assert.match(html, /estimasi gaji awal/);
-  assert.match(html, /Harga aset =/);
-  assert.match(html, /gaji bulanan awal/);
+  assert.match(html, /gaji kotor/);
+  assert.match(html, /Gaji bulanan awal/);
+  assert.match(html, /gaji bulanan menuju aset/);
+  assert.match(html, /purchase-arrow-motion/);
   assert.match(html, /Tanpa investasi/);
   assert.match(html, /Dengan investasi/);
   assert.match(html, /Aktifkan mode gelap/);

@@ -1,12 +1,13 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { compactRupiah, percentage, rupiah } from "../format";
 
 const designs = [
   { id: "executive", name: "Executive", number: "01" },
   { id: "bond", name: "Bond Certificate", number: "02" },
-  { id: "midnight", name: "Midnight", number: "03" },
+  { id: "cobalt", name: "Cobalt Report", number: "03" },
 ] as const;
 
 type DesignId = (typeof designs)[number]["id"];
@@ -25,10 +26,13 @@ interface DownloadCardStudioProps {
   monthlySalary: number;
   netYield: number;
   onDownloadingChange: (value: boolean) => void;
+  professionImage: string;
   professionName: string;
   professionSlug: string;
+  retirementAge: number;
   salaryGrowth: number;
   savingRate: number;
+  startAge: number;
   workYears: number;
 }
 
@@ -74,6 +78,41 @@ const drawFitText = (
   context.fillText(value, x, y);
 };
 
+const drawWrappedText = (
+  context: CanvasRenderingContext2D,
+  value: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  lineHeight: number,
+  maxLines: number,
+) => {
+  const words = value.split(" ");
+  let line = "";
+  let lineNumber = 0;
+
+  for (const word of words) {
+    const nextLine = line ? `${line} ${word}` : word;
+    if (context.measureText(nextLine).width > maxWidth && line) {
+      context.fillText(line, x, y + lineNumber * lineHeight);
+      line = word;
+      lineNumber += 1;
+      if (lineNumber >= maxLines - 1) break;
+    } else {
+      line = nextLine;
+    }
+  }
+
+  if (line && lineNumber < maxLines) context.fillText(line, x, y + lineNumber * lineHeight);
+};
+
+const loadCanvasImage = (source: string) => new Promise<HTMLImageElement | null>((resolve) => {
+  const image = new window.Image();
+  image.onload = () => resolve(image);
+  image.onerror = () => resolve(null);
+  image.src = source;
+});
+
 export function DownloadCardStudio({
   accent,
   annualPayments,
@@ -88,25 +127,30 @@ export function DownloadCardStudio({
   monthlySalary,
   netYield,
   onDownloadingChange,
+  professionImage,
   professionName,
   professionSlug,
+  retirementAge,
   salaryGrowth,
   savingRate,
+  startAge,
   workYears,
 }: DownloadCardStudioProps) {
   const [designId, setDesignId] = useState<DesignId>("executive");
   const cashLabel = compactRupiah(cashSaved);
   const investedLabel = compactRupiah(invested);
   const growthLabel = compactRupiah(Math.max(invested - cashSaved, 0));
+  const formalSummary = `Dengan asumsi seorang ${professionName} menyisihkan ${savingRate}% penghasilan secara konsisten selama ${workYears} tahun, dana diperkirakan mencapai ${cashLabel} jika hanya disimpan. Apabila setoran yang sama ditempatkan secara rutin pada ${instrumentShort}, nilai akhirnya diperkirakan menjadi ${investedLabel}. Selisih ${growthLabel} mencerminkan estimasi efek compounding berdasarkan yield yang digunakan.`;
 
   const downloadCard = async () => {
     onDownloadingChange(true);
     try {
       const canvas = document.createElement("canvas");
       canvas.width = 1200;
-      canvas.height = 1400;
+      canvas.height = 1600;
       const context = canvas.getContext("2d");
       if (!context) return;
+      const professionLogo = await loadCanvasImage(professionImage);
 
       const palettes: Record<DesignId, CardPalette> = {
         executive: {
@@ -125,13 +169,13 @@ export function DownloadCardStudio({
           accent: "#d5ad62",
           line: "rgba(213,173,98,.34)",
         },
-        midnight: {
-          background: "#07100d",
-          surface: "#101a17",
-          ink: "#eef5ec",
-          muted: "#93a39c",
-          accent: "#72e4bf",
-          line: "rgba(114,228,191,.24)",
+        cobalt: {
+          background: "#e8eef7",
+          surface: "#f9fbff",
+          ink: "#102643",
+          muted: "#607189",
+          accent: "#2856a6",
+          line: "rgba(16,38,67,.18)",
         },
       };
       const palette = palettes[designId];
@@ -147,19 +191,24 @@ export function DownloadCardStudio({
       } else if (designId === "bond") {
         context.strokeStyle = palette.line;
         context.lineWidth = 2;
-        context.strokeRect(35, 35, 1130, 1330);
-        context.strokeRect(50, 50, 1100, 1300);
+        context.strokeRect(35, 35, 1130, 1530);
+        context.strokeRect(50, 50, 1100, 1500);
         context.beginPath();
         context.arc(1050, 180, 170, 0, Math.PI * 2);
         context.stroke();
       } else {
-        context.strokeStyle = "rgba(114,228,191,.07)";
-        for (let position = 0; position <= 1400; position += 56) {
-          context.beginPath(); context.moveTo(position, 0); context.lineTo(position, 1400); context.stroke();
+        context.fillStyle = "#2856a6";
+        context.save();
+        context.translate(1030, -80);
+        context.rotate(Math.PI / 7);
+        context.fillRect(0, 0, 360, 740);
+        context.restore();
+        context.fillStyle = "#eb6a36";
+        context.fillRect(0, 0, 220, 24);
+        context.strokeStyle = "rgba(16,38,67,.08)";
+        for (let position = 0; position <= 1600; position += 72) {
           context.beginPath(); context.moveTo(0, position); context.lineTo(1200, position); context.stroke();
         }
-        context.fillStyle = "#eb6a36";
-        context.fillRect(72, 122, 12, 1160);
       }
 
       context.fillStyle = palette.accent;
@@ -168,7 +217,24 @@ export function DownloadCardStudio({
       context.fillText("INVESTASI VS TIDAK BERINVESTASI", 84, 105);
       context.letterSpacing = "0px";
 
-      drawFitText(context, professionName, 84, 190, 900, 62, 38, palette.ink);
+      context.save();
+      context.beginPath();
+      context.arc(1047, 151, 54, 0, Math.PI * 2);
+      context.clip();
+      if (professionLogo) {
+        context.drawImage(professionLogo, 993, 97, 108, 108);
+      } else {
+        context.fillStyle = palette.surface;
+        context.fillRect(993, 97, 108, 108);
+      }
+      context.restore();
+      context.strokeStyle = palette.accent;
+      context.lineWidth = 4;
+      context.beginPath();
+      context.arc(1047, 151, 58, 0, Math.PI * 2);
+      context.stroke();
+
+      drawFitText(context, professionName, 84, 190, 820, 62, 38, palette.ink);
       context.fillStyle = palette.muted;
       context.font = "600 21px Segoe UI, Arial";
       context.fillText(`${benchmarkLabel} · acuan ${benchmarkYear}`, 84, 235);
@@ -203,8 +269,9 @@ export function DownloadCardStudio({
         context.fill();
         context.strokeStyle = palette.line;
         context.stroke();
-        const foreground = highlighted && designId === "executive" ? "#fffaf1" : palette.ink;
-        const secondary = highlighted && designId === "executive" ? "rgba(255,250,241,.72)" : palette.muted;
+        const useLightText = highlighted && designId !== "bond";
+        const foreground = useLightText ? "#fffaf1" : palette.ink;
+        const secondary = useLightText ? "rgba(255,250,241,.72)" : palette.muted;
         context.fillStyle = secondary;
         context.font = "800 18px Segoe UI, Arial";
         context.fillText(label, x + 38, 625);
@@ -229,16 +296,50 @@ export function DownloadCardStudio({
       context.fillText("POTENSI TAMBAHAN DARI COMPOUNDING", 108, 1015);
       drawFitText(context, `+${growthLabel}`, 108, 1080, 900, 48, 30, palette.accent);
 
+      context.fillStyle = palette.surface;
+      roundedRect(context, 72, 1155, 1056, 150, 24);
+      context.fill();
+      context.strokeStyle = palette.line;
+      context.stroke();
       context.fillStyle = palette.muted;
-      context.font = "600 17px Segoe UI, Arial";
-      context.fillText(`${instrumentName} · ${instrumentShort}`, 84, 1210);
-      context.font = "500 15px Segoe UI, Arial";
-      context.fillText(`Sumber instrumen: ${instrumentSource}`, 84, 1245);
-      context.fillText("Simulasi edukasi berdasarkan asumsi pengguna. Bukan janji keuntungan.", 84, 1280);
-      context.fillStyle = palette.ink;
-      context.font = "800 18px Segoe UI, Arial";
+      context.font = "700 15px Segoe UI, Arial";
+      context.fillText(`MULAI USIA ${startAge}`, 108, 1202);
       context.textAlign = "right";
-      context.fillText("JEJAK GAJI · 2026", 1116, 1325);
+      context.fillText(`PENSIUN USIA ${retirementAge}`, 1092, 1202);
+      context.textAlign = "center";
+      context.fillStyle = palette.ink;
+      context.font = "700 19px Georgia, serif";
+      context.fillText(`${workYears} TAHUN MASA KERJA`, 600, 1202);
+      context.fillStyle = palette.line;
+      roundedRect(context, 108, 1240, 984, 12, 6);
+      context.fill();
+      context.fillStyle = palette.accent;
+      roundedRect(context, 108, 1240, 984, 12, 6);
+      context.fill();
+      [108, 600, 1092].forEach((x) => {
+        context.beginPath();
+        context.arc(x, 1246, 10, 0, Math.PI * 2);
+        context.fill();
+      });
+
+      context.fillStyle = palette.muted;
+      context.font = "700 15px Segoe UI, Arial";
+      context.textAlign = "left";
+      context.fillText("RINGKASAN ASUMSI", 84, 1360);
+      context.fillStyle = palette.ink;
+      context.font = "500 17px Segoe UI, Arial";
+      drawWrappedText(context, formalSummary, 84, 1400, 1032, 27, 4);
+
+      context.fillStyle = palette.muted;
+      context.font = "600 15px Segoe UI, Arial";
+      context.fillText(`${instrumentName} · ${instrumentShort}`, 84, 1510);
+      context.font = "500 13px Segoe UI, Arial";
+      context.fillText(`Sumber instrumen: ${instrumentSource}`, 84, 1540);
+      context.fillText("Simulasi edukasi berdasarkan asumsi pengguna. Bukan janji keuntungan.", 84, 1570);
+      context.fillStyle = palette.ink;
+      context.font = "800 16px Segoe UI, Arial";
+      context.textAlign = "right";
+      context.fillText("JEJAK GAJI · 2026", 1116, 1570);
       context.textAlign = "left";
 
       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
@@ -278,6 +379,9 @@ export function DownloadCardStudio({
           >
             <span className="design-card-mini">
               <i>{design.number}</i>
+              <span className="design-profession-logo" aria-hidden="true">
+                <Image src={professionImage} alt="" width={96} height={96} unoptimized />
+              </span>
               <small>{professionName}</small>
               <strong>Investasi vs Tidak Berinvestasi</strong>
               <em>{savingRate}% disisihkan · {workYears} tahun</em>
@@ -288,6 +392,23 @@ export function DownloadCardStudio({
           </button>
         ))}
       </div>
+
+      <div className="download-career-preview" aria-label={`${workYears} tahun masa kerja dari usia ${startAge} hingga pensiun usia ${retirementAge}`}>
+        <div className="download-career-head">
+          <span>Perjalanan karier</span>
+          <strong>{workYears} tahun bekerja</strong>
+        </div>
+        <div className="download-career-track" aria-hidden="true"><span /><i /><i /></div>
+        <div className="download-career-labels">
+          <span>Mulai usia {startAge}</span>
+          <span>Pensiun usia {retirementAge}</span>
+        </div>
+      </div>
+
+      <p className="download-formal-summary">
+        <strong>Ringkasan asumsi</strong>
+        {formalSummary}
+      </p>
 
       <button className="download-summary" type="button" onClick={downloadCard} disabled={isDownloading}>
         <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 20h14" /></svg>
