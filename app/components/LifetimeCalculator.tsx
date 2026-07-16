@@ -3,49 +3,34 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { DownloadCardStudio } from "./DownloadCardStudio";
 import {
   cityWages,
   investments,
   referenceData,
   type Profession,
 } from "../data";
-
-const rupiah = new Intl.NumberFormat("id-ID", {
-  style: "currency",
-  currency: "IDR",
-  maximumFractionDigits: 0,
-});
-
-const compactRupiah = (value: number) => {
-  if (value >= 1_000_000_000_000) return `Rp${(value / 1_000_000_000_000).toFixed(2)} T`;
-  if (value >= 1_000_000_000) return `Rp${(value / 1_000_000_000).toFixed(2)} M`;
-  if (value >= 1_000_000) return `Rp${(value / 1_000_000).toFixed(1)} jt`;
-  return rupiah.format(value);
-};
-
-const loadCanvasImage = (src: string) =>
-  new Promise<HTMLImageElement>((resolve, reject) => {
-    const image = new window.Image();
-    image.onload = () => resolve(image);
-    image.onerror = reject;
-    image.src = src;
-  });
+import { compactRupiah, percentage, rupiah } from "../format";
 
 export function LifetimeCalculator({ profession }: { profession: Profession }) {
   const isMinimumWage = profession.slug === "upah-minimum";
+  const isCustom = profession.slug === "custom";
   const [cityId, setCityId] = useState("kediri");
   const [salaryOptionId, setSalaryOptionId] = useState(
     profession.defaultSalaryOptionId ?? profession.salaryOptions?.[0]?.id ?? "",
   );
   const [salary, setSalary] = useState(profession.defaultSalary);
+  const [customStartAge, setCustomStartAge] = useState(profession.startAge);
+  const [customRetirementAge, setCustomRetirementAge] = useState(profession.retirementAge);
+  const [customAnnualPayments, setCustomAnnualPayments] = useState(profession.annualPayments);
   const [salaryGrowth, setSalaryGrowth] = useState(3);
-  const [savingRate, setSavingRate] = useState(15);
-  const [instrumentId, setInstrumentId] = useState<keyof typeof investments>("sbn");
+  const [savingRate, setSavingRate] = useState(30);
   const [isDownloading, setIsDownloading] = useState(false);
   const [assetPrices, setAssetPrices] = useState({
     gold: referenceData.gold10g,
     car: referenceData.car,
     house: referenceData.house,
+    ferrari: referenceData.ferrari,
   });
   const [goldPriceLive, setGoldPriceLive] = useState(false);
 
@@ -70,11 +55,16 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
   }, []);
 
   const city = cityWages.find((item) => item.id === cityId) ?? cityWages[0];
-  const instrument = investments[instrumentId];
+  const instrument = investments.sbn;
   const salaryOption = profession.salaryOptions?.find((item) => item.id === salaryOptionId);
-  const startAge = salaryOption?.startAge ?? profession.startAge;
-  const retirementAge = salaryOption?.retirementAge ?? profession.retirementAge;
-  const retirementRule = salaryOption?.retirementRule ?? profession.retirementRule;
+  const startAge = isCustom ? customStartAge : salaryOption?.startAge ?? profession.startAge;
+  const retirementAge = isCustom
+    ? Math.max(customRetirementAge, customStartAge + 1)
+    : salaryOption?.retirementAge ?? profession.retirementAge;
+  const annualPayments = isCustom ? customAnnualPayments : profession.annualPayments;
+  const retirementRule = isCustom
+    ? `Target pensiun custom pada usia ${retirementAge} tahun`
+    : salaryOption?.retirementRule ?? profession.retirementRule;
   const workYears = Math.max(retirementAge - startAge, 1);
   const retirementYear = referenceData.currentYear + workYears;
   const postRetirementYears = Math.max(referenceData.lifeExpectancy - retirementAge, 0);
@@ -83,11 +73,13 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
     ? `${city.type} ${city.city} · pekerja <1 tahun`
     : salaryOption
       ? `${salaryOption.label} · gaji pokok minimum`
-      : profession.benchmarkLabel;
+      : isCustom
+        ? `Data custom · ${annualPayments} kali pembayaran per tahun`
+        : profession.benchmarkLabel;
 
   const calculation = useMemo(() => {
     const months = workYears * 12;
-    const monthlyEquivalent = salary * (profession.annualPayments / 12);
+    const monthlyEquivalent = salary * (annualPayments / 12);
     const monthlyRate = instrument.netYield / 100 / 12;
     let totalIncome = 0;
     let cashSaved = 0;
@@ -107,9 +99,10 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
       cashSaved,
       invested,
       growth: invested - cashSaved,
-      monthlyEquivalent,
+      firstMonthlySaving: salary * (savingRate / 100),
+      firstYearSaving: salary * annualPayments * (savingRate / 100),
     };
-  }, [instrument.netYield, profession.annualPayments, salary, salaryGrowth, savingRate, workYears]);
+  }, [annualPayments, instrument.netYield, salary, salaryGrowth, savingRate, workYears]);
 
   const handleCity = (nextId: string) => {
     const nextCity = cityWages.find((item) => item.id === nextId);
@@ -129,157 +122,46 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
       name: "Emas Antam 10g",
       price: assetPrices.gold,
       helper: `${goldPriceLive ? "Logam Mulia API" : "harga acuan"} · 10 gram`,
-      image: "/antam-10g.png",
+      image: "/purchasing/antam-10g-cutout.png",
       alt: "Emas batangan Antam 10 gram dalam kemasan",
       fit: "contain",
-      width: 250,
-      height: 250,
+      width: 1254,
+      height: 1254,
     },
     {
       id: "car" as const,
       name: "Toyota Avanza 1.5 G CVT",
       price: assetPrices.car,
       helper: "acuan OTR Jakarta 2026",
-      image: "/avanza.png",
+      image: "/purchasing/avanza-cutout.png",
       alt: "Toyota All New Avanza warna abu-abu",
-      fit: "cover",
-      width: 930,
-      height: 620,
+      fit: "contain",
+      width: 1535,
+      height: 1024,
     },
     {
       id: "house" as const,
       name: "Rumah sederhana",
       price: assetPrices.house,
       helper: "ilustrasi rumah kelas Rp600 juta",
-      image: "/rumah-600-juta.png",
+      image: "/purchasing/rumah-cutout.png",
       alt: "Rumah sederhana satu lantai dengan carport",
-      fit: "cover",
+      fit: "contain",
+      width: 1536,
+      height: 1024,
+    },
+    {
+      id: "ferrari" as const,
+      name: "Ferrari Roma",
+      price: assetPrices.ferrari,
+      helper: "ilustrasi harga Rp10 miliar",
+      image: "/purchasing/ferrari-cutout.png",
+      alt: "Ferrari Roma merah tampak depan tiga perempat",
+      fit: "contain",
       width: 1536,
       height: 1024,
     },
   ];
-
-  const downloadSummary = async () => {
-    setIsDownloading(true);
-    try {
-      const canvas = document.createElement("canvas");
-      canvas.width = 1200;
-      canvas.height = 1500;
-      const context = canvas.getContext("2d");
-      if (!context) return;
-
-      context.fillStyle = "#f5f0e6";
-      context.fillRect(0, 0, canvas.width, canvas.height);
-      context.strokeStyle = "rgba(33,31,26,.07)";
-      context.lineWidth = 1;
-      for (let line = 0; line <= canvas.width; line += 60) {
-        context.beginPath();
-        context.moveTo(line, 0);
-        context.lineTo(line, canvas.height);
-        context.stroke();
-      }
-      for (let line = 0; line <= canvas.height; line += 60) {
-        context.beginPath();
-        context.moveTo(0, line);
-        context.lineTo(canvas.width, line);
-        context.stroke();
-      }
-
-      context.fillStyle = profession.accent;
-      context.fillRect(0, 0, canvas.width, 430);
-      const logo = await loadCanvasImage(profession.image);
-      context.save();
-      context.beginPath();
-      context.arc(125, 120, 65, 0, Math.PI * 2);
-      context.clip();
-      context.drawImage(logo, 60, 55, 130, 130);
-      context.restore();
-
-      context.fillStyle = "rgba(255,255,255,.72)";
-      context.font = "600 24px Segoe UI, Arial";
-      context.letterSpacing = "3px";
-      context.fillText("RINGKASAN JEJAK GAJI · 2026", 225, 105);
-      context.fillStyle = "#fffdf8";
-      context.font = "400 58px Georgia, serif";
-      context.fillText(profession.name, 225, 165);
-      context.font = "400 108px Georgia, serif";
-      context.fillText(compactRupiah(calculation.totalIncome), 70, 320);
-      context.font = "400 25px Segoe UI, Arial";
-      context.fillStyle = "rgba(255,255,255,.72)";
-      context.fillText("estimasi penghasilan kotor selama masa kerja", 75, 365);
-
-      const drawMetric = (label: string, value: string, x: number, y: number, width = 500) => {
-        context.fillStyle = "#6f6b61";
-        context.font = "600 20px Segoe UI, Arial";
-        context.fillText(label.toUpperCase(), x, y);
-        context.fillStyle = "#211f1a";
-        context.font = "400 38px Georgia, serif";
-        context.fillText(value, x, y + 52, width);
-      };
-
-      context.fillStyle = "#fffdf8";
-      context.fillRect(55, 475, 1090, 250);
-      drawMetric("Benchmark otomatis", rupiah.format(salary), 90, 525, 470);
-      drawMetric("Masa kerja", `${workYears} tahun`, 630, 525, 420);
-      drawMetric("Mulai kerja", `Usia ${startAge} · ${referenceData.currentYear}`, 90, 635, 470);
-      drawMetric(
-        profession.retirementIsTarget ? "Target pensiun" : "Pensiun sesuai BUP",
-        `Usia ${retirementAge} · ${retirementYear}`,
-        630,
-        635,
-        420,
-      );
-
-      context.fillStyle = profession.accent;
-      context.fillRect(55, 760, 1090, 300);
-      context.fillStyle = "rgba(255,255,255,.7)";
-      context.font = "600 20px Segoe UI, Arial";
-      context.fillText(`${savingRate}% PENGHASILAN DISISIHKAN`, 90, 815);
-      context.fillStyle = "#fffdf8";
-      context.font = "400 42px Georgia, serif";
-      context.fillText(`Tanpa investasi  ${compactRupiah(calculation.cashSaved)}`, 90, 885);
-      context.fillText(`Dengan ${instrument.name}  ${compactRupiah(calculation.invested)}`, 90, 955);
-      context.fillStyle = "rgba(255,255,255,.7)";
-      context.font = "400 23px Segoe UI, Arial";
-      context.fillText(`Yield neto ${instrument.netYield.toFixed(2)}% · potensi tambahan ${compactRupiah(calculation.growth)}`, 90, 1015);
-
-      context.fillStyle = "#211f1a";
-      context.font = "400 36px Georgia, serif";
-      context.fillText("Daya beli dalam kelipatan gaji", 70, 1135);
-      assets.forEach((asset, index) => {
-        const x = 70 + index * 360;
-        context.fillStyle = "#6f6b61";
-        context.font = "600 18px Segoe UI, Arial";
-        context.fillText(asset.name.toUpperCase(), x, 1195, 310);
-        context.fillStyle = profession.accent;
-        context.font = "400 44px Georgia, serif";
-        context.fillText(`${(asset.price / salary).toFixed(1)}× gaji`, x, 1255, 310);
-      });
-
-      context.fillStyle = "#6f6b61";
-      context.font = "400 20px Segoe UI, Arial";
-      context.fillText(benchmarkLabel, 70, 1350, 1050);
-      context.fillText(`Acuan ${profession.benchmarkYear} · UHH ${referenceData.lifeExpectancy} tahun · kenaikan gaji ${salaryGrowth}%/tahun`, 70, 1385, 1050);
-      context.font = "400 17px Segoe UI, Arial";
-      context.fillText("Simulasi edukasi, bukan janji pendapatan atau keuntungan investasi.", 70, 1440);
-      context.fillStyle = profession.accent;
-      context.font = "700 20px Segoe UI, Arial";
-      context.fillText("JEJAK GAJI", 965, 1440);
-
-      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
-      if (!blob) return;
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = `jejak-gaji-${profession.slug}-2026.png`;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      URL.revokeObjectURL(url);
-    } finally {
-      setIsDownloading(false);
-    }
-  };
 
   return (
     <div className="calculator-shell">
@@ -287,12 +169,73 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
         <div className="section-heading compact-heading">
           <span className="step-number">01</span>
           <div>
-            <p className="section-kicker">Benchmark otomatis</p>
-            <h2 id="input-title">Jalurmu sudah diisi</h2>
+            <p className="section-kicker">{isCustom ? "Data milikmu" : "Benchmark otomatis"}</p>
+            <h2 id="input-title">{isCustom ? "Atur jalur kerjamu" : "Jalurmu sudah diisi"}</h2>
           </div>
         </div>
 
         <div className="control-stack">
+          {isCustom ? (
+            <div className="custom-input-grid">
+              <label className="field-label custom-salary-field" htmlFor="custom-salary">
+                <span>Penghasilan per bulan</span>
+                <div className="number-field">
+                  <span>Rp</span>
+                  <input
+                    id="custom-salary"
+                    type="number"
+                    min={100_000}
+                    step={100_000}
+                    value={salary}
+                    onChange={(event) => setSalary(Math.max(Number(event.target.value), 0))}
+                  />
+                </div>
+              </label>
+              <label className="field-label" htmlFor="custom-start-age">
+                <span>Usia mulai bekerja</span>
+                <div className="number-field">
+                  <input
+                    id="custom-start-age"
+                    type="number"
+                    min={15}
+                    max={70}
+                    value={customStartAge}
+                    onChange={(event) => setCustomStartAge(Math.min(Math.max(Number(event.target.value), 15), 70))}
+                  />
+                  <span>tahun</span>
+                </div>
+              </label>
+              <label className="field-label" htmlFor="custom-retirement-age">
+                <span>Target pensiun</span>
+                <div className="number-field">
+                  <input
+                    id="custom-retirement-age"
+                    type="number"
+                    min={16}
+                    max={85}
+                    value={customRetirementAge}
+                    onChange={(event) => setCustomRetirementAge(Math.min(Math.max(Number(event.target.value), 16), 85))}
+                  />
+                  <span>tahun</span>
+                </div>
+              </label>
+              <label className="field-label" htmlFor="custom-payments">
+                <span>Pembayaran per tahun</span>
+                <div className="number-field">
+                  <input
+                    id="custom-payments"
+                    type="number"
+                    min={1}
+                    max={24}
+                    value={customAnnualPayments}
+                    onChange={(event) => setCustomAnnualPayments(Math.min(Math.max(Number(event.target.value), 1), 24))}
+                  />
+                  <span>kali</span>
+                </div>
+              </label>
+            </div>
+          ) : null}
+
           {isMinimumWage ? (
             <label className="field-label" htmlFor="city">
               <span>Daerah tempat tinggal dan bekerja</span>
@@ -335,7 +278,7 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
             <div className="benchmark-card-head">
               <Image src={profession.image} alt="" width={1024} height={1024} sizes="64px" unoptimized />
               <div>
-                <span>Benchmark {isMinimumWage ? 2026 : profession.benchmarkYear}</span>
+                <span>{isCustom ? "Ringkasan input" : `Benchmark ${isMinimumWage ? 2026 : profession.benchmarkYear}`}</span>
                 <strong>{benchmarkLabel}</strong>
               </div>
             </div>
@@ -356,9 +299,19 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
               <div className="label-row"><span>Kenaikan gaji</span><strong>{salaryGrowth}% / th</strong></div>
               <input aria-label="Kenaikan gaji tahunan" type="range" min={0} max={10} step={0.5} value={salaryGrowth} onChange={(event) => setSalaryGrowth(Number(event.target.value))} />
             </div>
-            <div className="field-label">
+            <div className="field-label saving-rate-field">
               <div className="label-row"><span>Disisihkan</span><strong>{savingRate}%</strong></div>
               <input aria-label="Persentase penghasilan yang disisihkan" type="range" min={0} max={40} step={1} value={savingRate} onChange={(event) => setSavingRate(Number(event.target.value))} />
+              <div className="saving-live-preview" aria-live="polite">
+                <div><span>Dari gaji bulanan awal</span><strong>{rupiah.format(calculation.firstMonthlySaving)}</strong></div>
+                <div><span>Setoran tahun pertama</span><strong>{compactRupiah(calculation.firstYearSaving)}</strong></div>
+                <div><span>Tanpa investasi sampai pensiun</span><strong>{compactRupiah(calculation.cashSaved)}</strong></div>
+                <div><span>Jika rutin di {instrument.short}</span><strong>{compactRupiah(calculation.invested)}</strong></div>
+                <p>
+                  Dari estimasi total penghasilan <b>{compactRupiah(calculation.totalIncome)}</b>, porsi {savingRate}% setara <b>{compactRupiah(calculation.cashSaved)}</b> sebelum imbal hasil.
+                </p>
+              </div>
+              <small className="saving-rate-note">Simulasi dimulai dari 30%. Geser persentase untuk melihat nominalnya berubah langsung.</small>
             </div>
           </div>
         </div>
@@ -371,12 +324,38 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
 
       <section className="calculator-results" aria-live="polite">
         <div className="result-topline">
-          <p>Estimasi penghasilan seumur kerja</p>
+          <p>Preview skenario akhir masa kerja</p>
           <span>{workYears} tahun bekerja</span>
         </div>
-        <p className="hero-number">{compactRupiah(calculation.totalIncome)}</p>
+
+        <div
+          className="result-scenario-preview"
+          key={`${salary}-${salaryGrowth}-${savingRate}-${workYears}`}
+        >
+          <article className="result-scenario-card">
+            <div className="result-scenario-card-head"><b>01</b><span>Tanpa investasi</span></div>
+            <strong>{compactRupiah(calculation.cashSaved)}</strong>
+            <small>{savingRate}% penghasilan hanya disimpan</small>
+            <div className="result-mini-bars flat" aria-hidden="true"><span /><span /><span /><span /><span /><span /></div>
+            <i aria-hidden="true"><b style={{ width: `${calculation.invested > 0 ? (calculation.cashSaved / calculation.invested) * 100 : 0}%` }} /></i>
+          </article>
+          <div className="result-scenario-vs">VS</div>
+          <article className="result-scenario-card invested">
+            <div className="result-scenario-card-head"><b>02</b><span>Dengan {instrument.name}</span></div>
+            <strong>{compactRupiah(calculation.invested)}</strong>
+            <small>Yield neto {percentage.format(instrument.netYield)}% per tahun</small>
+            <div className="result-mini-bars" aria-hidden="true"><span /><span /><span /><span /><span /><span /></div>
+            <i aria-hidden="true"><b style={{ width: calculation.invested > 0 ? "100%" : "0%" }} /></i>
+          </article>
+        </div>
+
+        <div className="result-growth-highlight">
+          <div><span>Potensi tambahan dari investasi</span><small>Efek compounding selama {workYears} tahun</small></div>
+          <strong>+{compactRupiah(calculation.growth)}</strong>
+        </div>
+
         <p className="result-caption">
-          Nominal sebelum biaya hidup, dengan kenaikan gaji {salaryGrowth}% per tahun dan {profession.annualPayments} kali pembayaran per tahun.
+          Skenario memakai kenaikan gaji {salaryGrowth}% per tahun, {annualPayments} kali pembayaran, dan setoran rutin selama masa kerja.
         </p>
 
         <div className="life-timeline" aria-label="Garis waktu hidup dan kerja">
@@ -395,15 +374,34 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
         </div>
 
         <div className="mini-metrics">
-          <div><span>Setara bulanan + bonus</span><strong>{compactRupiah(calculation.monthlyEquivalent)}</strong></div>
+          <div><span>Total penghasilan kotor</span><strong>{compactRupiah(calculation.totalIncome)}</strong></div>
           <div><span>Tahun pensiun</span><strong>{retirementYear}</strong></div>
           <div><span>Masa setelah pensiun</span><strong>{postRetirementYears.toFixed(1)} tahun</strong></div>
         </div>
 
-        <button className="download-summary" type="button" onClick={downloadSummary} disabled={isDownloading}>
-          <span aria-hidden="true">↓</span>
-          {isDownloading ? "Menyiapkan gambar..." : "Unduh ringkasan PNG"}
-        </button>
+        <DownloadCardStudio
+          accent={profession.accent}
+          cashSaved={calculation.cashSaved}
+          invested={calculation.invested}
+          instrumentName={instrument.name}
+          instrumentShort={instrument.short}
+          instrumentSource={instrument.sourceLabel}
+          netYield={instrument.netYield}
+          isDownloading={isDownloading}
+          onDownloadingChange={setIsDownloading}
+          annualPayments={annualPayments}
+          benchmarkLabel={benchmarkLabel}
+          benchmarkYear={isMinimumWage ? 2026 : profession.benchmarkYear}
+          monthlySalary={salary}
+          professionImage={profession.image}
+          professionName={profession.name}
+          professionSlug={profession.slug}
+          retirementAge={retirementAge}
+          savingRate={savingRate}
+          salaryGrowth={salaryGrowth}
+          startAge={startAge}
+          workYears={workYears}
+        />
       </section>
 
       <section className="investment-panel full-span">
@@ -411,16 +409,18 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
           <span className="step-number">02</span>
           <div>
             <p className="section-kicker">Uang yang sama, hasil berbeda</p>
-            <h2>Menabung saja vs investasi sangat konservatif</h2>
+            <h2>Disimpan saja vs Obligasi Negara.</h2>
           </div>
         </div>
 
-        <div className="instrument-tabs" role="group" aria-label="Pilih instrumen investasi">
-          {(Object.keys(investments) as Array<keyof typeof investments>).map((key) => (
-            <button key={key} type="button" className={instrumentId === key ? "active" : ""} onClick={() => setInstrumentId(key)}>
-              <strong>{investments[key].name}</strong><span>{investments[key].short}</span>
-            </button>
-          ))}
+        <div className="bond-assumption" aria-label="Instrumen investasi default">
+          <span className="bond-assumption-mark">ID</span>
+          <div>
+            <small>Instrumen default · Obligasi Negara</small>
+            <strong>{instrument.short} · kupon tetap {percentage.format(instrument.grossYield)}% bruto</strong>
+            <p>Simulasi memakai yield neto {percentage.format(instrument.netYield)}% setelah PPh final 10%.</p>
+          </div>
+          <span className="bond-source-label">Sumber: DJPPR Kementerian Keuangan</span>
         </div>
 
         <div className="scenario-grid">
@@ -435,7 +435,7 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
           </article>
           <div className="versus-badge">VS</div>
           <article className="scenario-card invest-card">
-            <div className="scenario-icon">+{instrument.netYield.toFixed(2)}%</div>
+            <div className="scenario-icon">+{percentage.format(instrument.netYield)}%</div>
             <p>Dengan investasi {instrument.name}</p>
             <strong>{compactRupiah(calculation.invested)}</strong>
             <div className="scenario-result-bar" aria-hidden="true"><span style={{ width: calculation.invested > 0 ? "100%" : "0%" }} /></div>
@@ -445,13 +445,13 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
             <p>Potensi tambahan dari compounding</p>
             <strong>+{compactRupiah(calculation.growth)}</strong>
             <div className="yield-row">
-              <span>Yield neto <b>{instrument.netYield.toFixed(2)}%</b></span>
+              <span>Yield neto <b>{percentage.format(instrument.netYield)}%</b></span>
               <span>Inflasi <b>{referenceData.inflation}%</b></span>
-              <span>Real yield ≈ <b>{realYield.toFixed(2)}%</b></span>
+              <span>Real yield ≈ <b>{percentage.format(realYield)}%</b></span>
             </div>
           </article>
         </div>
-        <p className="fine-print">⚠️ Risiko: {instrument.note} SBN memiliki risiko harga jika dijual sebelum jatuh tempo; RDPU juga bukan deposito dan hasilnya tidak dijamin. Ini simulasi edukasi, bukan janji keuntungan.</p>
+        <p className="fine-print">⚠️ Risiko: {instrument.note} ORI memiliki risiko harga jika dijual sebelum jatuh tempo. Ini simulasi edukasi, bukan janji keuntungan.</p>
       </section>
 
       <section className="purchase-panel full-span">
@@ -459,58 +459,80 @@ export function LifetimeCalculator({ profession }: { profession: Profession }) {
           <span className="step-number">03</span>
           <div>
             <p className="section-kicker">Daya beli hari ini</p>
-            <h2>Berapa kali gaji untuk membelinya?</h2>
+            <h2>Berapa kali gaji bulanan untuk membelinya?</h2>
           </div>
         </div>
 
-        <div className="purchase-grid">
+        <div className="purchase-journey-list">
           {assets.map((asset) => {
-            const months = asset.price / salary;
-            const years = months / 12;
-            const progress = Math.min((years / workYears) * 100, 100);
-            const exceedsCareer = years > workYears;
+            const years = asset.price / Math.max(salary * annualPayments, 1);
+            const salaryMultiple = asset.price / Math.max(salary, 1);
+            const totalUnits = calculation.totalIncome / Math.max(asset.price, 1);
+            const timeLabel = years < 1 ? `${(years * 12).toFixed(1)} bulan` : `${years.toFixed(1)} tahun`;
             return (
-              <article className="purchase-card" key={asset.id}>
-                <div className="purchase-art">
-                  <Image
-                    className={`asset-image ${asset.fit}`}
-                    src={asset.image}
-                    alt={asset.alt}
-                    width={asset.width}
-                    height={asset.height}
-                    sizes="(max-width: 680px) 100vw, 33vw"
-                    unoptimized
-                  />
-                </div>
-                <p>{asset.name}</p>
-                <div className="price-input-row">
-                  <span>Rp</span>
-                  <input
-                    aria-label={`Harga ${asset.name}`}
-                    type="number"
-                    min={1_000_000}
-                    step={1_000_000}
-                    value={asset.price}
-                    onChange={(event) => setAssetPrices((current) => ({ ...current, [asset.id]: Math.max(Number(event.target.value), 0) }))}
-                  />
-                </div>
-                <strong>{months.toFixed(1)}× gaji bulanan</strong>
-                <div className={`purchase-progress ${exceedsCareer ? "over-career" : ""}`}>
-                  <div className="purchase-progress-track" aria-label={`${years.toFixed(1)} tahun gaji kotor`}>
-                    <span style={{ width: `${progress}%` }} />
-                  </div>
-                  <div className="purchase-progress-years">
-                    <span>0 th</span>
-                    <strong>{years.toFixed(1)} tahun gaji</strong>
-                    <span>{workYears} th karier</span>
+              <article className="purchase-journey" key={asset.id}>
+                <div className="purchase-total-block">
+                  <span>Gaji bulanan awal</span>
+                  <strong>{compactRupiah(salary)}</strong>
+                  <div className="purchase-lifetime-note">
+                    <span>Estimasi penghasilan seumur kerja</span>
+                    <b>{compactRupiah(calculation.totalIncome)}</b>
                   </div>
                 </div>
-                <small>{exceedsCareer ? "Melewati estimasi masa kerja · " : "100% gaji kotor · "}{asset.helper}</small>
+
+                <div className="purchase-arrow-block">
+                  <div className="purchase-arrow-motion" aria-hidden="true">
+                    <span /><i /><i /><i />
+                  </div>
+                  <strong>{salaryMultiple.toFixed(1)}×</strong>
+                  <span>gaji bulanan menuju aset</span>
+                  <small>≈ {timeLabel} gaji kotor</small>
+                </div>
+
+                <div className="purchase-asset-block">
+                  <div className="purchase-cutout">
+                    <Image
+                      className="asset-cutout"
+                      src={asset.image}
+                      alt={asset.alt}
+                      width={asset.width}
+                      height={asset.height}
+                      sizes="(max-width: 680px) 75vw, 260px"
+                      loading="eager"
+                      unoptimized
+                    />
+                  </div>
+                  <div className="purchase-asset-copy">
+                    <div className="purchase-asset-title">
+                      <span className="purchase-asset-icon" aria-hidden="true">
+                        <Image src={asset.image} alt="" width={64} height={64} unoptimized />
+                      </span>
+                      <p>{asset.name}</p>
+                    </div>
+                    <strong className="purchase-price-value">{compactRupiah(asset.price)}</strong>
+                    <div className="price-input-row">
+                      <span>Ubah Rp</span>
+                      <input
+                        aria-label={`Harga ${asset.name}`}
+                        type="number"
+                        min={1_000_000}
+                        step={1_000_000}
+                        value={asset.price}
+                        onChange={(event) => setAssetPrices((current) => ({ ...current, [asset.id]: Math.max(Number(event.target.value), 0) }))}
+                      />
+                    </div>
+                    <small>
+                      {totalUnits >= 1
+                        ? `Total gaji setara ${totalUnits.toFixed(1)} unit`
+                        : `Total gaji menutup ${(totalUnits * 100).toFixed(0)}% harga`} · {asset.helper}
+                    </small>
+                  </div>
+                </div>
               </article>
             );
           })}
         </div>
-        <p className="fine-print">Perbandingan ini menganggap 100% gaji dipakai membeli aset, jadi waktu nyata pasti lebih lama setelah biaya hidup. Avanza memakai acuan OTR Jakarta 2026, sedangkan rumah adalah contoh Rp600 juta yang bisa kamu ubah.</p>
+        <p className="fine-print">Estimasi tahun memakai 100% gaji awal sebelum biaya hidup. Waktu nyata pasti lebih lama setelah kebutuhan bulanan, pajak, dan perubahan harga aset.</p>
       </section>
 
       <footer className="calculator-footer full-span">
